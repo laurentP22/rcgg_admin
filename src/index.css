@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --pitch: #122A54;
+    --pitch-2: #2C5AA6;
+    --chalk: #F4F5F7;
+    --paper: #FFFFFF;
+    --ink: #161B22;
+    --ink-soft: #525C68;
+    --leather: #C1272D;
+    --leather-2: #DE4B44;
+    --line: #DADEE3;
+    --amber: #C98A1F;
+    --danger: #9B3B2D;
+    --radius: 4px;
+  }
+
+  body {
+    font-family: 'Work Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: var(--chalk);
+    color: var(--ink);
+    margin: 0;
+    padding: 0;
+  }
+
+  h1, h2, h3, h4, .font-heading {
+    font-family: 'Oswald', sans-serif;
+    letter-spacing: 0.01em;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(18, 42, 84, 0.2);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(18, 42, 84, 0.35);
+}
+
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-page {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+}

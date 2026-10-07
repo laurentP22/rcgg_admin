@@ -1,0 +1,7 @@
+{
+  "name": "Feuille de Match - Club de Rugby",
+  "description": "Application d'organisation des matchs, tournois, bénévoles et logistique pour club de rugby.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
