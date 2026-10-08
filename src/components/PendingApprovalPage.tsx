@@ -112,7 +112,7 @@ export const PendingApprovalPage: React.FC<PendingApprovalPageProps> = ({
 
       {/* Footer */}
       <footer className="w-full max-w-md pb-6 text-center text-xs text-slate-500">
-        🏉 Rugby Club Planner &bull; Espace Sécurisé
+        🏉 {clubName} &bull; Espace Sécurisé
       </footer>
     </div>
   );

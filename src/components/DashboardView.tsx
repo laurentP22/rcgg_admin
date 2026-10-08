@@ -23,6 +23,11 @@ import {
   Trophy,
   Beer,
   Baby,
+  AlertTriangle,
+  CheckCircle2,
+  Filter,
+  X,
+  UserCheck,
 } from "lucide-react";
 
 interface DashboardViewProps {
@@ -44,23 +49,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCatFilter, setSelectedCatFilter] = useState("all");
+  const [activeKpiFilter, setActiveKpiFilter] = useState<"all" | "missing_volunteers" | "needs_prep">("all");
 
   const totalEvents = events.length;
   const upcomingEvents = events.filter((e) => !isPastDate(e.date));
   const pastEvents = events.filter((e) => isPastDate(e.date));
 
-  // Count total volunteers required across events
-  const totalVolunteersNeeded = events.reduce((acc, ev) => {
-    return (
-      acc +
-      ev.benevoles.reduce((bAcc, b) => {
-        const n = parseInt(b.nombre, 10);
-        return bAcc + (isNaN(n) ? 1 : n);
-      }, 0)
-    );
-  }, 0);
+  // Count total volunteers required & registered across upcoming events
+  let totalVolunteersRequired = 0;
+  let totalVolunteersRegistered = 0;
+  let missingVolunteersCount = 0;
 
-  // Average preparation
+  upcomingEvents.forEach((ev) => {
+    ev.benevoles.forEach((b) => {
+      const n = parseInt(b.nombre, 10);
+      const req = isNaN(n) ? 1 : n;
+      const filled = (b.inscrits || []).length;
+      totalVolunteersRequired += req;
+      totalVolunteersRegistered += filled;
+      if (req > filled) {
+        missingVolunteersCount += (req - filled);
+      }
+    });
+  });
+
+  // Average preparation across upcoming events
   const avgProgress =
     upcomingEvents.length > 0
       ? Math.round(
@@ -85,7 +98,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     const matchesCat =
       selectedCatFilter === "all" || e.type === selectedCatFilter;
 
-    return matchesSearch && matchesCat;
+    // KPI Filters
+    let matchesKpi = true;
+    if (activeKpiFilter === "missing_volunteers") {
+      const hasMissing = e.benevoles.some((b) => {
+        const n = parseInt(b.nombre, 10);
+        const req = isNaN(n) ? 1 : n;
+        const filled = (b.inscrits || []).length;
+        return filled < req;
+      });
+      matchesKpi = hasMissing;
+    } else if (activeKpiFilter === "needs_prep") {
+      matchesKpi = calculateProgress(e) < 80;
+    }
+
+    return matchesSearch && matchesCat && matchesKpi;
   });
 
   return (
@@ -121,54 +148,100 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Stats Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mt-6">
-            <div className="bg-black/25 backdrop-blur-sm border border-white/10 p-3.5 rounded-lg">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6">
+            <button
+              onClick={() => setActiveKpiFilter("all")}
+              className={`text-left backdrop-blur-sm border p-3.5 rounded-lg transition-all cursor-pointer ${
+                activeKpiFilter === "all"
+                  ? "bg-white/20 border-white ring-2 ring-white/30"
+                  : "bg-black/25 hover:bg-black/35 border-white/10"
+              }`}
+            >
               <div className="flex items-center gap-2 text-slate-300 text-xs font-medium">
-                <Calendar className="w-3.5 h-3.5 text-blue-300" /> Total enregistrés
-              </div>
-              <div className="text-2xl sm:text-3xl font-heading font-bold mt-1 text-white">
-                {totalEvents}
-              </div>
-              <div className="text-[11px] text-slate-300 mt-0.5">
-                {pastEvents.length} archivés
-              </div>
-            </div>
-
-            <div className="bg-black/25 backdrop-blur-sm border border-white/10 p-3.5 rounded-lg">
-              <div className="flex items-center gap-2 text-slate-300 text-xs font-medium">
-                <Clock className="w-3.5 h-3.5 text-amber-300" /> Prochains matchs
+                <Clock className="w-3.5 h-3.5 text-amber-300" /> Prochains événements
               </div>
               <div className="text-2xl sm:text-3xl font-heading font-bold mt-1 text-amber-300">
                 {upcomingEvents.length}
               </div>
               <div className="text-[11px] text-slate-300 mt-0.5">
-                à disputer
+                à disputer / organiser
               </div>
-            </div>
+            </button>
 
-            <div className="bg-black/25 backdrop-blur-sm border border-white/10 p-3.5 rounded-lg">
-              <div className="flex items-center gap-2 text-slate-300 text-xs font-medium">
-                <Users className="w-3.5 h-3.5 text-emerald-300" /> Bénévoles requis
+            {/* Bénévoles requis - Actionable KPI */}
+            <button
+              onClick={() =>
+                setActiveKpiFilter((cur) =>
+                  cur === "missing_volunteers" ? "all" : "missing_volunteers"
+                )
+              }
+              className={`text-left backdrop-blur-sm border p-3.5 rounded-lg transition-all cursor-pointer relative group ${
+                activeKpiFilter === "missing_volunteers"
+                  ? "bg-emerald-500/30 border-emerald-300 ring-2 ring-emerald-300"
+                  : "bg-black/25 hover:bg-black/35 border-white/10"
+              }`}
+              title="Cliquer pour afficher uniquement les matchs nécessitant des bénévoles"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-300 text-xs font-medium">
+                  <Users className="w-3.5 h-3.5 text-emerald-300" /> Bénévoles
+                </div>
+                {missingVolunteersCount > 0 ? (
+                  <span className="text-[10px] bg-amber-400 text-slate-900 font-bold px-1.5 py-0.2 rounded animate-pulse">
+                    {missingVolunteersCount} manquants
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-emerald-400 text-slate-900 font-bold px-1.5 py-0.2 rounded">
+                    Au complet
+                  </span>
+                )}
               </div>
-              <div className="text-2xl sm:text-3xl font-heading font-bold mt-1 text-emerald-300">
-                {totalVolunteersNeeded}
+              <div className="text-2xl sm:text-3xl font-heading font-bold mt-1 text-emerald-300 flex items-baseline gap-1.5">
+                <span>{totalVolunteersRegistered}</span>
+                <span className="text-sm font-sans font-normal text-slate-300">
+                  / {totalVolunteersRequired} requis
+                </span>
               </div>
-              <div className="text-[11px] text-slate-300 mt-0.5">
-                buvette, table, arbitrage
+              <div className="text-[11px] text-slate-300 mt-0.5 flex items-center justify-between">
+                <span>{missingVolunteersCount > 0 ? "Postes à pourvoir" : "Tous pourvus"}</span>
+                <span className="text-[10px] underline decoration-emerald-300 text-emerald-200 group-hover:text-white">
+                  {activeKpiFilter === "missing_volunteers" ? "✕ Réinitialiser" : "Voir les besoins →"}
+                </span>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-black/25 backdrop-blur-sm border border-white/10 p-3.5 rounded-lg">
-              <div className="flex items-center gap-2 text-slate-300 text-xs font-medium">
-                <CheckSquare className="w-3.5 h-3.5 text-sky-300" /> Préparation
+            {/* Préparation - Actionable KPI */}
+            <button
+              onClick={() =>
+                setActiveKpiFilter((cur) =>
+                  cur === "needs_prep" ? "all" : "needs_prep"
+                )
+              }
+              className={`text-left backdrop-blur-sm border p-3.5 rounded-lg transition-all cursor-pointer relative group ${
+                activeKpiFilter === "needs_prep"
+                  ? "bg-sky-500/30 border-sky-300 ring-2 ring-sky-300"
+                  : "bg-black/25 hover:bg-black/35 border-white/10"
+              }`}
+              title="Cliquer pour afficher les matchs avec préparation incomplète"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-slate-300 text-xs font-medium">
+                  <CheckSquare className="w-3.5 h-3.5 text-sky-300" /> Préparation
+                </div>
+                <span className="text-[10px] bg-sky-400 text-slate-900 font-bold px-1.5 py-0.2 rounded">
+                  Avancement
+                </span>
               </div>
               <div className="text-2xl sm:text-3xl font-heading font-bold mt-1 text-sky-300">
                 {avgProgress}%
               </div>
-              <div className="text-[11px] text-slate-300 mt-0.5">
-                moyenne des tâches
+              <div className="text-[11px] text-slate-300 mt-0.5 flex items-center justify-between">
+                <span>Moyenne matériel &amp; tâches</span>
+                <span className="text-[10px] underline decoration-sky-300 text-sky-200 group-hover:text-white">
+                  {activeKpiFilter === "needs_prep" ? "✕ Réinitialiser" : "Filtrer &lt; 80% →"}
+                </span>
               </div>
-            </div>
+            </button>
           </div>
         </div>
       </div>
@@ -383,12 +456,30 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Filter and Events Grid */}
       <div>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <h2 className="text-lg font-heading font-bold text-slate-900 flex items-center gap-2">
-            <span>Tous les rendez-vous à venir</span>
-            <span className="text-xs font-sans font-medium px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
-              {filteredUpcoming.length}
-            </span>
-          </h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-lg font-heading font-bold text-slate-900 flex items-center gap-2">
+              <span>
+                {activeKpiFilter === "missing_volunteers"
+                  ? "Matchs avec postes bénévoles à pourvoir"
+                  : activeKpiFilter === "needs_prep"
+                  ? "Matchs nécessitant de la préparation (< 80%)"
+                  : "Tous les rendez-vous à venir"}
+              </span>
+              <span className="text-xs font-sans font-medium px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
+                {filteredUpcoming.length}
+              </span>
+            </h2>
+
+            {activeKpiFilter !== "all" && (
+              <button
+                onClick={() => setActiveKpiFilter("all")}
+                className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-slate-800 text-white font-medium hover:bg-slate-700 transition-colors cursor-pointer"
+              >
+                <span>Filtre actif</span>
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             {/* Search Input */}
@@ -412,14 +503,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Aucun événement ne correspond à vos filtres.
             </p>
             <p className="text-xs text-slate-400 mt-1">
-              Modifiez votre recherche ou créez une nouvelle feuille de match.
+              {activeKpiFilter !== "all"
+                ? "Tous les postes sont pourvus ou les préparations terminées !"
+                : "Modifiez votre recherche ou créez une nouvelle feuille de match."}
             </p>
-            <button
-              onClick={onNewEvent}
-              className="mt-4 px-4 py-2 bg-[#122A54] text-white rounded-lg text-xs font-semibold hover:bg-[#1B3B73] transition-colors"
-            >
-              + Créer un nouvel événement
-            </button>
+            {activeKpiFilter !== "all" ? (
+              <button
+                onClick={() => setActiveKpiFilter("all")}
+                className="mt-4 px-4 py-2 bg-[#122A54] text-white rounded-lg text-xs font-semibold hover:bg-[#1B3B73] transition-colors cursor-pointer"
+              >
+                Voir tous les événements
+              </button>
+            ) : (
+              <button
+                onClick={onNewEvent}
+                className="mt-4 px-4 py-2 bg-[#122A54] text-white rounded-lg text-xs font-semibold hover:bg-[#1B3B73] transition-colors"
+              >
+                + Créer un nouvel événement
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -427,6 +529,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               const typeInfo = getTypeInfo(ev.type);
               const progress = calculateProgress(ev);
               const daysLeft = getDaysRemaining(ev.date);
+
+              // Calculate volunteer status for this event
+              let evVolunteersReq = 0;
+              let evVolunteersReg = 0;
+              const missingPosts: string[] = [];
+
+              ev.benevoles.forEach((b) => {
+                const n = parseInt(b.nombre, 10);
+                const req = isNaN(n) ? 1 : n;
+                const filled = (b.inscrits || []).length;
+                evVolunteersReq += req;
+                evVolunteersReg += filled;
+                if (filled < req) {
+                  missingPosts.push(`${b.poste} (${req - filled} manquant${req - filled > 1 ? "s" : ""})`);
+                }
+              });
+
+              const evVolunteersMissing = Math.max(0, evVolunteersReq - evVolunteersReg);
 
               return (
                 <div
@@ -475,6 +595,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         </div>
                       )}
                     </div>
+
+                    {/* Needs Highlight on Card */}
+                    {missingPosts.length > 0 && (
+                      <div className="mt-3 p-2 rounded-lg bg-amber-50 border border-amber-200 text-[11px]">
+                        <div className="font-bold text-amber-900 flex items-center gap-1">
+                          <Users className="w-3 h-3 text-amber-700" />
+                          <span>Besoins bénévoles : {evVolunteersMissing} manquant(s)</span>
+                        </div>
+                        <div className="text-amber-800 truncate mt-0.5" title={missingPosts.join(", ")}>
+                          {missingPosts.slice(0, 2).join(" • ")}
+                          {missingPosts.length > 2 ? "..." : ""}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Progress & Bottom Bar */}
@@ -495,9 +629,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     </div>
 
                     <div className="flex items-center justify-between text-[11px] text-slate-500 mt-3 pt-2">
-                      <span>{ev.benevoles.length} bénévoles</span>
+                      <span className="flex items-center gap-1 font-medium">
+                        <Users className="w-3 h-3 text-slate-400" />
+                        {evVolunteersReg} / {evVolunteersReq} bénévole(s)
+                      </span>
                       <span className="text-[#122A54] group-hover:translate-x-0.5 transition-transform font-semibold flex items-center gap-1">
-                        Ouvrir &rarr;
+                        S'inscrire / Gérer &rarr;
                       </span>
                     </div>
                   </div>

@@ -439,7 +439,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Footer Branding */}
       <div className="p-3 border-t border-white/10 text-center text-[11px] text-slate-400 bg-black/20">
-        🏉 Rugby Club Planner &bull; FFR ready
+        🏉 {clubName}
       </div>
     </aside>
   );

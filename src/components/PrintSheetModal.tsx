@@ -215,16 +215,32 @@ export const PrintSheetModal: React.FC<PrintSheetModalProps> = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {event.benevoles.map((b) => (
-                    <tr key={b.id}>
-                      <td className="py-2 font-bold text-slate-900">{b.poste}</td>
-                      <td className="py-2 text-slate-600">{b.creneau}</td>
-                      <td className="py-2 text-slate-600">{b.nombre} pers.</td>
-                      <td className="py-2 border-b border-dashed border-slate-300 text-slate-400">
-                        ______________________
-                      </td>
-                    </tr>
-                  ))}
+                  {event.benevoles.map((b) => {
+                    const registeredNames = (b.inscrits || []).map((ins) => ins.userName).join(", ");
+                    const needed = parseInt(b.nombre, 10);
+                    const filled = (b.inscrits || []).length;
+                    const remaining = isNaN(needed) ? 0 : Math.max(0, needed - filled);
+
+                    return (
+                      <tr key={b.id}>
+                        <td className="py-2 font-bold text-slate-900">{b.poste}</td>
+                        <td className="py-2 text-slate-600">{b.creneau}</td>
+                        <td className="py-2 text-slate-600">
+                          {b.nombre} pers.
+                          {remaining > 0 ? (
+                            <span className="ml-1 text-[10px] text-amber-700 font-semibold">({remaining} manquant{remaining > 1 ? "s" : ""})</span>
+                          ) : (
+                            <span className="ml-1 text-[10px] text-emerald-700 font-semibold">(Complet)</span>
+                          )}
+                        </td>
+                        <td className="py-2 border-b border-dashed border-slate-300 text-slate-800">
+                          {registeredNames || (
+                            <span className="text-slate-400">______________________</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}

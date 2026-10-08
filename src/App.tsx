@@ -44,6 +44,8 @@ const STORAGE_KEY = "rugby_planner_v1";
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
+  const [actualAuthenticatedUser, setActualAuthenticatedUser] = useState<User | null>(null);
+  const [actualAuthenticatedProfile, setActualAuthenticatedProfile] = useState<UserProfile | null>(null);
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [userManagementOpen, setUserManagementOpen] = useState(false);
   const [isFirestoreLive, setIsFirestoreLive] = useState(false);
@@ -104,20 +106,33 @@ export default function App() {
   // 1. Listen to Auth State and sync User Profile
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
+      setActualAuthenticatedUser(user);
       if (user) {
         try {
           const profile = await syncUserProfile(user);
-          setCurrentUserProfile(profile);
+          setActualAuthenticatedProfile(profile);
+          // If not currently in explicit demo mode, sync active currentUser
+          setCurrentUser((cur) => {
+            if (!isDemoUser || !cur) return user;
+            return cur;
+          });
+          setCurrentUserProfile((curProf) => {
+            if (!isDemoUser || !curProf) return profile;
+            return curProf;
+          });
         } catch (err) {
           console.error("Erreur syncUserProfile:", err);
         }
       } else {
-        setCurrentUserProfile(null);
+        setActualAuthenticatedProfile(null);
+        if (!isDemoUser) {
+          setCurrentUser(null);
+          setCurrentUserProfile(null);
+        }
       }
     });
     return () => unsub();
-  }, []);
+  }, [isDemoUser]);
 
   // Listen to profile updates in real time (e.g. when Admin approves user!)
   useEffect(() => {
@@ -205,8 +220,11 @@ export default function App() {
       const user = await loginWithGoogle();
       if (user) {
         setIsDemoUser(false);
+        setActualAuthenticatedUser(user);
         showToast(`Connecté en tant que ${user.displayName || user.email}`);
         const profile = await syncUserProfile(user);
+        setActualAuthenticatedProfile(profile);
+        setCurrentUser(user);
         setCurrentUserProfile(profile);
         if (profile.status === "approved") {
           seedInitialFirestoreData(clubName, events).catch(() => {});
@@ -237,9 +255,18 @@ export default function App() {
 
   const handleExitDemo = () => {
     setIsDemoUser(false);
-    setCurrentUser(null);
-    setCurrentUserProfile(null);
-    showToast("Mode démo quitté");
+    // If the user had logged in with Google previously (e.g. Laurent / Admin or regular member),
+    // restore their real account and role view instead of kicking back to the sign in page!
+    if (actualAuthenticatedUser && actualAuthenticatedProfile) {
+      setCurrentUser(actualAuthenticatedUser);
+      setCurrentUserProfile(actualAuthenticatedProfile);
+      showToast(`Retour à votre profil : ${actualAuthenticatedProfile.displayName} (${actualAuthenticatedProfile.role})`);
+    } else {
+      // If entered demo directly from the login page, default back to Benevole or sign in
+      setCurrentUser(null);
+      setCurrentUserProfile(null);
+      showToast("Mode test quitté");
+    }
   };
 
   const handleLogoutGoogle = async () => {
@@ -389,10 +416,28 @@ export default function App() {
   };
 
   const handleUpdateEvent = (updated: EventItem) => {
+    // If user is not Admin, check if only the benevoles (volunteer registrations) changed
     if (!isAdmin) {
-      showToast("La modification d'événements est réservée à l'administrateur");
-      return;
+      const original = events.find((e) => e.id === updated.id);
+      const isOnlyVolunteerUpdate =
+        original &&
+        original.nom === updated.nom &&
+        original.type === updated.type &&
+        original.cat === updated.cat &&
+        original.date === updated.date &&
+        original.lieu === updated.lieu &&
+        original.horaire === updated.horaire &&
+        original.adversaire === updated.adversaire &&
+        JSON.stringify(original.materiel) === JSON.stringify(updated.materiel) &&
+        JSON.stringify(original.todo) === JSON.stringify(updated.todo) &&
+        JSON.stringify(original.com) === JSON.stringify(updated.com);
+
+      if (!isOnlyVolunteerUpdate) {
+        showToast("La modification d'événements est réservée à l'administrateur");
+        return;
+      }
     }
+
     setEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
     if (currentUser) {
       saveEventToFirestore(updated).catch(() => {});
@@ -550,16 +595,6 @@ export default function App() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => {
-                const targetRole = currentUserProfile?.role === "Benevole" ? "Joueur" : "Benevole";
-                const next = DEFAULT_SAMPLE_USERS.find((u) => u.role === targetRole) || DEFAULT_SAMPLE_USERS[0];
-                handleLoginAsDemo(next);
-              }}
-              className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-medium cursor-pointer transition-colors border border-white/20"
-            >
-              Basculer vers {currentUserProfile?.role === "Benevole" ? "Joueur" : "Bénévole"}
-            </button>
-            <button
               onClick={handleExitDemo}
               className="px-2.5 py-1 rounded bg-[#C1272D] hover:bg-[#DE4B44] text-white text-xs font-bold cursor-pointer transition-colors shadow-xs"
             >
@@ -644,6 +679,8 @@ export default function App() {
           <EventDetailView
             event={selectedEvent}
             clubName={clubName}
+            currentUser={currentUser}
+            currentUserProfile={currentUserProfile}
             onUpdateEvent={handleUpdateEvent}
             onDeleteEvent={handleDeleteEvent}
             onBack={() => setSelectedEventId(null)}

@@ -64,7 +64,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
         <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
           <Shield className="w-3.5 h-3.5 text-[#DE4B44]" />
-          <span>Portail FFR &bull; Validation Administrateur</span>
+          <span>Validation Administrateur</span>
         </div>
       </header>
 
@@ -202,7 +202,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       {/* Footer */}
       <footer className="p-4 text-center text-xs text-slate-400 border-t border-white/10 relative z-10">
-        🏉 Rugby Club Planner &bull; Feuille de match XV &bull; FFR ready
+        🏉 {clubName}
       </footer>
     </div>
   );

@@ -57,7 +57,16 @@ export const DataBackupModal: React.FC<DataBackupModalProps> = ({
         if (!parsed || !Array.isArray(parsed.events)) {
           throw new Error("Format JSON invalide (clé 'events' manquante).");
         }
-        onImportData(parsed.clubName || clubName, parsed.events);
+        const cleanedEvents = parsed.events.map((e: any) => ({
+          ...e,
+          benevoles: Array.isArray(e.benevoles)
+            ? e.benevoles.map((b: any) => ({
+                ...b,
+                inscrits: Array.isArray(b.inscrits) ? b.inscrits : [],
+              }))
+            : [],
+        }));
+        onImportData(parsed.clubName || clubName, cleanedEvents);
         onShowToast(`${parsed.events.length} événements importés avec succès !`);
         onClose();
       } catch (err: any) {

@@ -86,7 +86,7 @@ service cloud.firestore {
 
     // Club configuration
     match /clubs/{clubId} {
-      allow get: if isValidId(clubId) && isSignedIn();
+      allow get: if isValidId(clubId);
       allow list: if isSignedIn();
       allow write: if isValidId(clubId) && isAdmin() && isValidClub(request.resource.data);
     }
@@ -96,7 +96,10 @@ service cloud.firestore {
       allow get: if isValidId(eventId) && isSignedIn();
       allow list: if isSignedIn();
       allow create: if isValidId(eventId) && isAdmin() && isValidEvent(request.resource.data);
-      allow update: if isValidId(eventId) && isAdmin() && isValidEvent(request.resource.data);
+      allow update: if isValidId(eventId) && (
+        (isAdmin() && isValidEvent(request.resource.data)) ||
+        (isApprovedUser() && isValidEvent(request.resource.data))
+      );
       allow delete: if isValidId(eventId) && isAdmin();
     }
   }

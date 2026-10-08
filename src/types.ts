@@ -44,12 +44,20 @@ export interface ChecklistItem {
   done: boolean;
 }
 
+export interface VolunteerRegistration {
+  userId: string;
+  userName: string;
+  userRole?: UserRole;
+  registeredAt: string;
+}
+
 export interface VolunteerItem {
   id: string;
   poste: string;
   creneau: string;
   nombre: string;
   lien: string;
+  inscrits?: VolunteerRegistration[];
 }
 
 export interface CommunicationItem {
@@ -235,10 +243,19 @@ export const DEFAULT_SAMPLE_EVENTS: EventItem[] = [
       { id: "t5", label: "Commande fûts de bière buvette & frites 3e mi-temps", done: true },
     ],
     benevoles: [
-      { id: "b1", poste: "Buvette & Restauration", creneau: "13h00 - 18h30", nombre: "4", lien: "https://chat.whatsapp.com/sample-buvette" },
-      { id: "b2", poste: "Entrée & Billetterie", creneau: "13h00 - 15h30", nombre: "2", lien: "https://forms.gle/sample-billetterie" },
-      { id: "b3", poste: "Table de marque & Chronomètre", creneau: "13h15 - 17h00", nombre: "2", lien: "" },
-      { id: "b4", poste: "Speaker & Animation terrain", creneau: "14h45 - 17h15", nombre: "1", lien: "" },
+      {
+        id: "b1",
+        poste: "Buvette & Restauration",
+        creneau: "13h00 - 18h30",
+        nombre: "4",
+        lien: "https://chat.whatsapp.com/sample-buvette",
+        inscrits: [
+          { userId: "fake-benevole-1", userName: "Benevol1", userRole: "Benevole", registeredAt: new Date().toISOString() },
+        ],
+      },
+      { id: "b2", poste: "Entrée & Billetterie", creneau: "13h00 - 15h30", nombre: "2", lien: "https://forms.gle/sample-billetterie", inscrits: [] },
+      { id: "b3", poste: "Table de marque & Chronomètre", creneau: "13h15 - 17h00", nombre: "2", lien: "", inscrits: [] },
+      { id: "b4", poste: "Speaker & Animation terrain", creneau: "14h45 - 17h15", nombre: "1", lien: "", inscrits: [] },
     ],
     com: [
       { id: "c1", date: new Date(Date.now() - 86400000).toISOString().slice(0, 10), quoi: "Affiche du match sur Facebook & Instagram (Visuel officiel)", lien: "https://www.canva.com" },

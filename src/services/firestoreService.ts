@@ -251,7 +251,16 @@ export function subscribeToEvents(
           notes: d.notes || "",
           materiel: Array.isArray(d.materiel) ? d.materiel : [],
           todo: Array.isArray(d.todo) ? d.todo : [],
-          benevoles: Array.isArray(d.benevoles) ? d.benevoles : [],
+          benevoles: Array.isArray(d.benevoles)
+            ? d.benevoles.map((b: any) => ({
+                id: b.id || "",
+                poste: b.poste || "",
+                creneau: b.creneau || "",
+                nombre: b.nombre || "1",
+                lien: b.lien || "",
+                inscrits: Array.isArray(b.inscrits) ? b.inscrits : [],
+              }))
+            : [],
           com: Array.isArray(d.com) ? d.com : [],
         });
       });
