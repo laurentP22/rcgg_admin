@@ -104,18 +104,25 @@ export function subscribeToAllUsers(
 
 export async function adminUpdateUser(
   targetUid: string,
-  role: UserRole,
-  status: UserStatus,
+  updates: {
+    role?: UserRole;
+    status?: UserStatus;
+    displayName?: string;
+  },
   adminUid: string
 ): Promise<void> {
   const userRef = doc(db, USERS_COLLECTION, targetUid);
-  const dataToUpdate: Record<string, any> = {
-    role,
-    status,
-  };
-  if (status === "approved") {
-    dataToUpdate.approvedAt = new Date().toISOString();
-    dataToUpdate.approvedBy = adminUid;
+  const dataToUpdate: Record<string, any> = {};
+  if (updates.role) dataToUpdate.role = updates.role;
+  if (updates.status) {
+    dataToUpdate.status = updates.status;
+    if (updates.status === "approved") {
+      dataToUpdate.approvedAt = new Date().toISOString();
+      dataToUpdate.approvedBy = adminUid;
+    }
+  }
+  if (updates.displayName !== undefined) {
+    dataToUpdate.displayName = updates.displayName.trim();
   }
   await setDoc(userRef, dataToUpdate, { merge: true });
 }
@@ -125,18 +132,73 @@ export async function adminDeleteUser(targetUid: string): Promise<void> {
   await deleteDoc(userRef);
 }
 
-export async function seedSampleUsersToFirestore(adminEmail: string = BOOTSTRAP_ADMIN_EMAIL): Promise<void> {
+export async function adminCreateUser(userData: {
+  displayName: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  adminUid: string;
+}): Promise<UserProfile> {
+  const cleanId = "user-" + Date.now() + "-" + Math.random().toString(36).substring(2, 7);
+  const now = new Date().toISOString();
+  const newUser: UserProfile = {
+    uid: cleanId,
+    displayName: userData.displayName.trim() || "Nouveau Membre",
+    email: userData.email.trim().toLowerCase(),
+    role: userData.role,
+    status: userData.status,
+    createdAt: now,
+    approvedAt: userData.status === "approved" ? now : undefined,
+    approvedBy: userData.status === "approved" ? userData.adminUid : undefined,
+  };
+  const userRef = doc(db, USERS_COLLECTION, cleanId);
+  await setDoc(userRef, newUser);
+  return newUser;
+}
+
+export async function ensureInitialTwoFakeUsers(adminEmail: string = BOOTSTRAP_ADMIN_EMAIL): Promise<void> {
+  const initKey = "rugby_fake_users_init_v3";
+  if (localStorage.getItem(initKey) === "done") {
+    return;
+  }
+
+  // Clean up legacy deleted/old sample users from Firestore once
+  const legacyUids = ["fake-benevole-2", "fake-joueur-2", "fake-pending-1"];
+  for (const uid of legacyUids) {
+    try {
+      await deleteDoc(doc(db, USERS_COLLECTION, uid));
+    } catch (_) {}
+  }
+
+  // Ensure Benevol1 and Joueur1 are set once
   for (const sampleUser of DEFAULT_SAMPLE_USERS) {
     try {
       const userRef = doc(db, USERS_COLLECTION, sampleUser.uid);
-      await setDoc(userRef, {
-        ...sampleUser,
-        approvedBy: sampleUser.status === "approved" ? adminEmail : undefined,
-      }, { merge: true });
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        await setDoc(userRef, {
+          ...sampleUser,
+          approvedBy: sampleUser.status === "approved" ? adminEmail : undefined,
+        });
+      } else {
+        const existingData = snap.data();
+        if (existingData?.displayName && (existingData.displayName.includes("Buvette") || existingData.displayName.includes("Marc"))) {
+          await setDoc(userRef, {
+            displayName: "Benevol1",
+            email: "benevol1@rugby-club.fr",
+          }, { merge: true });
+        }
+      }
     } catch (err) {
-      console.warn(`Impossible d'insérer l'utilisateur échantillon ${sampleUser.displayName}:`, err);
+      console.warn("Erreur init demo user", err);
     }
   }
+
+  localStorage.setItem(initKey, "done");
+}
+
+export async function seedSampleUsersToFirestore(adminEmail: string = BOOTSTRAP_ADMIN_EMAIL): Promise<void> {
+  await ensureInitialTwoFakeUsers(adminEmail);
 }
 
 export function subscribeToClub(

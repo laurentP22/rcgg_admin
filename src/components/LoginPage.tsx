@@ -38,7 +38,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
   // Find sample Benevole and Joueur
   const sampleBenevole = DEFAULT_SAMPLE_USERS.find((u) => u.role === "Benevole" && u.status === "approved") || DEFAULT_SAMPLE_USERS[0];
-  const sampleJoueur = DEFAULT_SAMPLE_USERS.find((u) => u.role === "Joueur" && u.status === "approved") || DEFAULT_SAMPLE_USERS[2];
+  const sampleJoueur = DEFAULT_SAMPLE_USERS.find((u) => u.role === "Joueur" && u.status === "approved") || DEFAULT_SAMPLE_USERS[1];
 
   return (
     <div className="min-h-screen bg-[#0E1E38] text-white flex flex-col justify-between relative overflow-hidden font-sans selection:bg-[#DE4B44] selection:text-white">

@@ -1,5 +1,5 @@
 export type UserRole = "Admin" | "Benevole" | "Joueur";
-export type UserStatus = "pending" | "approved" | "rejected";
+export type UserStatus = "pending" | "approved" | "rejected" | "deactivated";
 
 export interface UserProfile {
   uid: string;
@@ -18,51 +18,23 @@ export const BOOTSTRAP_ADMIN_EMAIL = "laurent22100@gmail.com";
 export const DEFAULT_SAMPLE_USERS: UserProfile[] = [
   {
     uid: "fake-benevole-1",
-    displayName: "Bénévole (Buvette & Logistique)",
-    email: "benevole.buvette@rugby-club.fr",
+    displayName: "Benevol1",
+    email: "benevol1@rugby-club.fr",
     role: "Benevole",
     status: "approved",
-    createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
-    approvedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-    approvedBy: "laurent22100@gmail.com",
-  },
-  {
-    uid: "fake-benevole-2",
-    displayName: "Bénévole (Intendance & Pharmacie)",
-    email: "benevole.intendance@rugby-club.fr",
-    role: "Benevole",
-    status: "approved",
-    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
-    approvedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
-    approvedBy: "laurent22100@gmail.com",
-  },
-  {
-    uid: "fake-joueur-1",
-    displayName: "Joueur (Demi de Mêlée - XV)",
-    email: "joueur.melee@rugby-club.fr",
-    role: "Joueur",
-    status: "approved",
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     approvedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
     approvedBy: "laurent22100@gmail.com",
   },
   {
-    uid: "fake-joueur-2",
-    displayName: "Joueur (Demi d'Ouverture - XV)",
-    email: "joueur.ouverture@rugby-club.fr",
+    uid: "fake-joueur-1",
+    displayName: "Joueur1",
+    email: "joueur1@rugby-club.fr",
     role: "Joueur",
     status: "approved",
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    approvedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    approvedAt: new Date(Date.now() - 86400000).toISOString(),
     approvedBy: "laurent22100@gmail.com",
-  },
-  {
-    uid: "fake-pending-1",
-    displayName: "Joueur (Nouveau Licencié - En attente)",
-    email: "joueur.nouveau@rugby-club.fr",
-    role: "Joueur",
-    status: "pending",
-    createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
   },
 ];
 

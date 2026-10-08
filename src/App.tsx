@@ -13,7 +13,8 @@ import {
   subscribeToAllUsers,
   adminUpdateUser,
   adminDeleteUser,
-  seedSampleUsersToFirestore,
+  adminCreateUser,
+  ensureInitialTwoFakeUsers,
 } from "./services/firestoreService";
 import {
   EventItem,
@@ -132,13 +133,14 @@ export default function App() {
   // If Admin, listen to all users in real time for approval
   useEffect(() => {
     if (currentUserProfile?.role === "Admin" && currentUserProfile?.status === "approved") {
+      // Initialize Benevol1 and Joueur1 once if needed
+      if (!hasSeededFirestore.current && auth.currentUser) {
+        hasSeededFirestore.current = true;
+        ensureInitialTwoFakeUsers(currentUser?.email || BOOTSTRAP_ADMIN_EMAIL).catch(() => {});
+      }
+
       const unsub = subscribeToAllUsers((users) => {
         setAllUsers(users);
-        // Automatically seed sample users if only the admin exists or collection is small
-        if (users.length <= 1 && !hasSeededFirestore.current && auth.currentUser) {
-          hasSeededFirestore.current = true;
-          seedSampleUsersToFirestore(currentUser?.email || BOOTSTRAP_ADMIN_EMAIL).catch(() => {});
-        }
       });
       return () => unsub();
     }
@@ -254,29 +256,50 @@ export default function App() {
     }
   };
 
-  const handleSeedSampleUsers = async () => {
-    const adminEmail = currentUser?.email || BOOTSTRAP_ADMIN_EMAIL;
-    await seedSampleUsersToFirestore(adminEmail);
-    setAllUsers((prev) => {
-      const existing = new Set(prev.map((u) => u.uid));
-      const next = [...prev];
-      for (const sample of DEFAULT_SAMPLE_USERS) {
-        if (!existing.has(sample.uid)) {
-          next.push(sample);
-        }
-      }
-      return next;
+  const handleAdminAddUser = async (data: {
+    displayName: string;
+    email: string;
+    role: UserRole;
+    status: UserStatus;
+  }) => {
+    if (!currentUser) return;
+    const created = await adminCreateUser({
+      ...data,
+      adminUid: currentUser.uid,
     });
-    showToast("Membres démo (Bénévoles & Joueurs) ajoutés !");
+    setAllUsers((prev) => {
+      const exists = prev.some((u) => u.uid === created.uid);
+      if (exists) return prev;
+      return [...prev, created];
+    });
   };
 
-  const handleAdminUpdateUser = async (targetUid: string, role: UserRole, status: UserStatus) => {
+  const handleAdminUpdateUser = async (
+    targetUid: string,
+    updates: {
+      role?: UserRole;
+      status?: UserStatus;
+      displayName?: string;
+    }
+  ) => {
     if (!currentUser) return;
-    await adminUpdateUser(targetUid, role, status, currentUser.uid);
+    await adminUpdateUser(targetUid, updates, currentUser.uid);
+    setAllUsers((prev) =>
+      prev.map((u) => {
+        if (u.uid === targetUid) {
+          return {
+            ...u,
+            ...updates,
+          };
+        }
+        return u;
+      })
+    );
   };
 
   const handleAdminDeleteUser = async (targetUid: string) => {
     await adminDeleteUser(targetUid);
+    setAllUsers((prev) => prev.filter((u) => u.uid !== targetUid));
   };
 
   const handleClubNameChange = (name: string) => {
@@ -472,19 +495,24 @@ export default function App() {
     );
   }
 
-  if (currentUserProfile.status === "rejected") {
+  if (currentUserProfile.status === "rejected" || currentUserProfile.status === "deactivated") {
+    const isDeact = currentUserProfile.status === "deactivated";
     return (
       <div className="min-h-screen bg-[#0E1E38] text-white flex flex-col items-center justify-center p-4 text-center">
-        <div className="w-12 h-12 rounded-full bg-red-600/20 text-red-400 flex items-center justify-center mx-auto mb-3">
-          <X className="w-6 h-6" />
+        <div className="w-12 h-12 rounded-full bg-slate-700/60 text-slate-300 flex items-center justify-center mx-auto mb-3">
+          <X className="w-6 h-6 text-rose-400" />
         </div>
-        <h1 className="font-heading text-2xl font-bold mb-2">Accès refusé</h1>
+        <h1 className="font-heading text-2xl font-bold mb-2">
+          {isDeact ? "Compte désactivé" : "Accès refusé"}
+        </h1>
         <p className="text-xs text-slate-300 max-w-sm mb-4">
-          Votre compte n'a pas été validé par l'administrateur du club.
+          {isDeact
+            ? "Votre accès a été désactivé par l'administrateur du club. Contactez un administrateur pour réactiver votre compte."
+            : "Votre compte n'a pas été validé par l'administrateur du club."}
         </p>
         <button
           onClick={handleLogoutGoogle}
-          className="px-4 py-2 bg-white text-slate-900 rounded-lg text-xs font-semibold cursor-pointer"
+          className="px-4 py-2 bg-white text-slate-900 rounded-lg text-xs font-semibold cursor-pointer hover:bg-slate-100"
         >
           Se déconnecter
         </button>
@@ -648,12 +676,12 @@ export default function App() {
         <UserManagementModal
           isOpen={userManagementOpen}
           onClose={() => setUserManagementOpen(false)}
-          users={allUsers.length > 0 ? allUsers : DEFAULT_SAMPLE_USERS}
+          users={allUsers}
           currentAdminUid={currentUser.uid}
           onUpdateUser={handleAdminUpdateUser}
           onDeleteUser={handleAdminDeleteUser}
+          onAddUser={handleAdminAddUser}
           onShowToast={showToast}
-          onSeedSampleUsers={handleSeedSampleUsers}
           onSimulateUser={handleSimulateUser}
         />
       )}

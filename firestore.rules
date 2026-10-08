@@ -58,7 +58,7 @@ service cloud.firestore {
       return data.uid is string && data.uid.size() <= 128
         && data.email is string && data.email.size() <= 200
         && (data.role in ['Admin', 'Benevole', 'Joueur'])
-        && (data.status in ['pending', 'approved', 'rejected']);
+        && (data.status in ['pending', 'approved', 'rejected', 'deactivated']);
     }
 
     // Users Collection
