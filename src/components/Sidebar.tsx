@@ -230,7 +230,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-md bg-[#C1272D] hover:bg-[#DE4B44] text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>+ Nouvel événement</span>
+            <span>Nouvel événement</span>
           </button>
         </div>
       )}
@@ -269,64 +269,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="px-4 py-2 border-b border-white/10">
-        <div className="flex items-center justify-between text-[11px] uppercase tracking-wider font-semibold text-slate-300 mb-2">
-          <span className="flex items-center gap-1">
-            <Filter className="w-3 h-3" /> Filtrer par type
-          </span>
-          {filterType !== "all" && (
-            <button
-              onClick={() => onSelectFilter("all")}
-              className="text-rose-300 hover:text-rose-200 lowercase text-[10px]"
-            >
-              réinitialiser
-            </button>
-          )}
-        </div>
-        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-          <button
-            onClick={() => onSelectFilter("all")}
-            className={`text-[11px] px-2.5 py-1 rounded-full border transition-all ${
-              filterType === "all"
-                ? "bg-white text-[#122A54] font-bold border-white"
-                : "bg-white/5 text-slate-300 border-white/20 hover:bg-white/10 hover:text-white"
-            }`}
-          >
-            Tous ({events.length})
-          </button>
-          {TYPES.map((t) => {
-            const count = events.filter((e) => e.type === t.id).length;
-            const active = filterType === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => onSelectFilter(t.id)}
-                className={`text-[11px] px-2 py-0.5 rounded-full border transition-all flex items-center gap-1.5 ${
-                  active
-                    ? "bg-white text-[#122A54] font-bold border-white"
-                    : "bg-white/5 text-slate-300 border-white/15 hover:bg-white/10 hover:text-white"
-                }`}
-                title={t.description}
-              >
-                <span
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ backgroundColor: t.color }}
-                />
-                <span className="truncate max-w-[120px]">{t.label}</span>
-                <span className="text-[10px] opacity-75">({count})</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Events List Scrollable Area */}
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
-        {/* Upcoming Section */}
+        {/* Upcoming Section with integrated Filter Dropdown */}
         <div>
-          <div className="text-[11px] uppercase tracking-wider font-bold text-slate-300 mb-2 flex items-center justify-between">
-            <span>À venir ({upcomingEvents.length})</span>
+          <div className="mb-2 flex items-center justify-between gap-1.5">
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 shrink-0">
+              À venir ({upcomingEvents.length})
+            </span>
+
+            {/* Filter Dropdown - Compact */}
+            <div className="relative">
+              <select
+                value={filterType}
+                onChange={(e) => onSelectFilter(e.target.value)}
+                className={`text-[10px] font-medium pl-1.5 pr-4 py-0.5 rounded border appearance-none cursor-pointer transition-all outline-none max-w-[125px] truncate ${
+                  filterType !== "all"
+                    ? "bg-white text-[#122A54] border-white shadow-2xs font-bold"
+                    : "bg-white/5 text-slate-300 border-white/10 hover:bg-white/10 hover:border-white/20"
+                }`}
+                title="Filtrer les événements par catégorie"
+              >
+                <option value="all" className="bg-[#122A54] text-white">
+                  Tous ({events.length})
+                </option>
+                {TYPES.map((t) => {
+                  const count = events.filter((e) => e.type === t.id).length;
+                  return (
+                    <option key={t.id} value={t.id} className="bg-[#122A54] text-white">
+                      {t.label} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronDown
+                className={`w-3 h-3 absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none transition-colors ${
+                  filterType !== "all" ? "text-[#122A54]" : "text-slate-400"
+                }`}
+              />
+            </div>
           </div>
 
           {upcomingEvents.length === 0 ? (
