@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "Club": {
+      "title": "Club",
+      "description": "Configuration et nom du club de rugby",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Nom officiel du club de rugby"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Horodatage de dernière mise à jour"
+        }
+      },
+      "required": ["name"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "Rencontre, match, tournoi ou événement associatif du club",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "maxLength": 128,
+          "description": "Identifiant unique de l'événement"
+        },
+        "nom": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Intitulé du match ou de l'événement"
+        },
+        "type": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Catégorie d'événement (edr_dom, senior_dom, etc.)"
+        },
+        "cat": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Catégorie FFR"
+        },
+        "date": {
+          "type": "string",
+          "maxLength": 20,
+          "description": "Date ISO YYYY-MM-DD"
+        },
+        "lieu": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Stade ou ville de la rencontre"
+        },
+        "horaire": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Heure de coup d'envoi"
+        },
+        "adversaire": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Nom du club adverse"
+        },
+        "notes": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Consignes des éducateurs et dirigeants"
+        },
+        "materiel": {
+          "type": "array",
+          "description": "Checklist des équipements"
+        },
+        "todo": {
+          "type": "array",
+          "description": "Checklist des tâches administratives et logistiques"
+        },
+        "benevoles": {
+          "type": "array",
+          "description": "Postes de bénévoles et créneaux"
+        },
+        "com": {
+          "type": "array",
+          "description": "Actions de communication"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Horodatage de modification"
+        }
+      },
+      "required": ["nom", "type", "cat"]
+    }
+  },
+  "firestore": {
+    "/clubs/{clubId}": {
+      "schema": "Club",
+      "description": "Document de configuration du club"
+    },
+    "/events/{eventId}": {
+      "schema": "Event",
+      "description": "Collection des matchs et événements du club"
+    }
+  }
+}

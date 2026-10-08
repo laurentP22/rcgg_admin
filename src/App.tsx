@@ -1,4 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { User, onAuthStateChanged } from "firebase/auth";
+import { auth, testConnection, loginWithGoogle, logoutUser } from "./firebase";
+import {
+  subscribeToClub,
+  subscribeToEvents,
+  saveClubToFirestore,
+  saveEventToFirestore,
+  deleteEventFromFirestore,
+  seedInitialFirestoreData,
+} from "./services/firestoreService";
 import {
   EventItem,
   DEFAULT_SAMPLE_EVENTS,
@@ -12,11 +22,17 @@ import { CalendarView } from "./components/CalendarView";
 import { EventDetailView } from "./components/EventDetailView";
 import { PrintSheetModal } from "./components/PrintSheetModal";
 import { DataBackupModal } from "./components/DataBackupModal";
+import { LoginPage } from "./components/LoginPage";
 import { Menu, X, Shield, Plus, Calendar as CalendarIcon, LayoutDashboard } from "lucide-react";
 
 const STORAGE_KEY = "rugby_planner_v1";
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isFirestoreLive, setIsFirestoreLive] = useState(false);
+  const [hasEnteredApp, setHasEnteredApp] = useState(false);
+  const hasSeededFirestore = useRef(false);
+
   // Initialize state with localStorage or sample data
   const [clubName, setClubName] = useState<string>(() => {
     try {
@@ -37,7 +53,6 @@ export default function App() {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed.events) && parsed.events.length > 0) {
-          // Migration of legacy type IDs if any
           const migrate: Record<string, string> = {
             match_dom: "senior_dom",
             match_ext: "senior_ext",
@@ -69,7 +84,47 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Persist to local storage whenever clubName or events change
+  // 1. Listen to Auth State
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsub();
+  }, []);
+
+  // 2. Test Firestore connection on boot and attach real-time subscriptions
+  useEffect(() => {
+    testConnection().then((ok) => {
+      if (ok) {
+        setIsFirestoreLive(true);
+      }
+    });
+
+    const unsubClub = subscribeToClub((liveName) => {
+      if (liveName) {
+        setClubName(liveName);
+        setIsFirestoreLive(true);
+      }
+    });
+
+    const unsubEvents = subscribeToEvents((liveEvents) => {
+      setIsFirestoreLive(true);
+      if (liveEvents.length > 0) {
+        setEvents(liveEvents);
+      } else if (!hasSeededFirestore.current && auth.currentUser) {
+        // If Firestore is empty on first boot and user is signed in, seed local events to Firestore
+        hasSeededFirestore.current = true;
+        seedInitialFirestoreData(clubName, events).catch(() => {});
+      }
+    });
+
+    return () => {
+      unsubClub();
+      unsubEvents();
+    };
+  }, []);
+
+  // Persist to local storage as offline cache
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -86,6 +141,35 @@ export default function App() {
     setTimeout(() => {
       setToastMessage((current) => (current === msg ? null : current));
     }, 2400);
+  };
+
+  const handleLoginGoogle = async () => {
+    try {
+      const user = await loginWithGoogle();
+      if (user) {
+        showToast(`Connecté en tant que ${user.displayName || user.email}`);
+        seedInitialFirestoreData(clubName, events).catch(() => {});
+      }
+    } catch (err: any) {
+      showToast("Connexion annulée ou erreur d'authentification");
+    }
+  };
+
+  const handleLogoutGoogle = async () => {
+    try {
+      await logoutUser();
+      setHasEnteredApp(false);
+      showToast("Déconnexion réussie");
+    } catch (err) {
+      showToast("Erreur lors de la déconnexion");
+    }
+  };
+
+  const handleClubNameChange = (name: string) => {
+    setClubName(name);
+    if (currentUser) {
+      saveClubToFirestore(name).catch(() => {});
+    }
   };
 
   // Helper to create a new event
@@ -124,6 +208,9 @@ export default function App() {
     setSelectedEventId(fresh.id);
     setMobileMenuOpen(false);
     showToast("Nouvel événement créé");
+    if (currentUser) {
+      saveEventToFirestore(fresh).catch(() => {});
+    }
   };
 
   const handleNewEventWithType = (type: string, category: string, defaultName: string) => {
@@ -135,6 +222,9 @@ export default function App() {
     setSelectedEventId(fresh.id);
     setMobileMenuOpen(false);
     showToast("Nouvel événement créé à partir du modèle");
+    if (currentUser) {
+      saveEventToFirestore(fresh).catch(() => {});
+    }
   };
 
   const handleNewEventForDate = (dateIso: string) => {
@@ -142,10 +232,16 @@ export default function App() {
     setEvents((prev) => [fresh, ...prev]);
     setSelectedEventId(fresh.id);
     showToast(`Événement créé pour le ${dateIso}`);
+    if (currentUser) {
+      saveEventToFirestore(fresh).catch(() => {});
+    }
   };
 
   const handleUpdateEvent = (updated: EventItem) => {
     setEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+    if (currentUser) {
+      saveEventToFirestore(updated).catch(() => {});
+    }
   };
 
   const handleDeleteEvent = (id: string) => {
@@ -154,6 +250,9 @@ export default function App() {
       setSelectedEventId(null);
     }
     showToast("Événement supprimé");
+    if (currentUser) {
+      deleteEventFromFirestore(id).catch(() => {});
+    }
   };
 
   const handleDuplicateEvent = (target: EventItem) => {
@@ -169,6 +268,9 @@ export default function App() {
     setEvents((prev) => [clone, ...prev]);
     setSelectedEventId(clone.id);
     showToast("Événement dupliqué");
+    if (currentUser) {
+      saveEventToFirestore(clone).catch(() => {});
+    }
   };
 
   const handleImportData = (newClubName: string, newEvents: EventItem[]) => {
@@ -176,6 +278,9 @@ export default function App() {
     setEvents(newEvents);
     setSelectedEventId(null);
     showToast("Données importées avec succès");
+    if (currentUser) {
+      seedInitialFirestoreData(newClubName, newEvents).catch(() => {});
+    }
   };
 
   const handleResetData = () => {
@@ -183,9 +288,22 @@ export default function App() {
     setEvents(DEFAULT_SAMPLE_EVENTS);
     setSelectedEventId(null);
     showToast("Exemples de démonstration restaurés");
+    if (currentUser) {
+      seedInitialFirestoreData("Rugby Club de l'Ovalie", DEFAULT_SAMPLE_EVENTS).catch(() => {});
+    }
   };
 
   const selectedEvent = events.find((e) => e.id === selectedEventId) || null;
+
+  if (!currentUser && !hasEnteredApp) {
+    return (
+      <LoginPage
+        clubName={clubName}
+        onLoginGoogle={handleLoginGoogle}
+        onContinueAsGuest={() => setHasEnteredApp(true)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F4F5F7] text-[#161B22] flex flex-col md:flex-row font-sans selection:bg-[#DE4B44] selection:text-white">
@@ -228,7 +346,7 @@ export default function App() {
       >
         <Sidebar
           clubName={clubName}
-          onClubNameChange={setClubName}
+          onClubNameChange={handleClubNameChange}
           currentView={currentView}
           onSelectView={(v) => {
             setCurrentView(v);
@@ -245,6 +363,10 @@ export default function App() {
           events={events}
           onNewEvent={handleNewEvent}
           onOpenBackupModal={() => setBackupModalOpen(true)}
+          currentUser={currentUser}
+          onLoginGoogle={handleLoginGoogle}
+          onLogoutGoogle={handleLogoutGoogle}
+          isFirestoreLive={isFirestoreLive}
         />
       </div>
 

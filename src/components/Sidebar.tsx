@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { User } from "firebase/auth";
 import {
   TYPES,
   EventItem,
@@ -19,6 +20,10 @@ import {
   Upload,
   RotateCcw,
   Sparkles,
+  LogIn,
+  LogOut,
+  Cloud,
+  CloudCheck,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -33,6 +38,10 @@ interface SidebarProps {
   events: EventItem[];
   onNewEvent: () => void;
   onOpenBackupModal: () => void;
+  currentUser: User | null;
+  onLoginGoogle: () => void;
+  onLogoutGoogle: () => void;
+  isFirestoreLive: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -47,6 +56,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   events,
   onNewEvent,
   onOpenBackupModal,
+  currentUser,
+  onLoginGoogle,
+  onLogoutGoogle,
+  isFirestoreLive,
 }) => {
   const [showPast, setShowPast] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -93,11 +106,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           Organisation des matchs, tournois, bénévoles &amp; matériel
         </p>
 
-        {/* Sync badge */}
+        {/* Sync badge with Firestore Status */}
         <div className="mt-3 flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Enregistré sur cet appareil
+          <span
+            className={`inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full border ${
+              isFirestoreLive
+                ? "bg-sky-500/20 text-sky-200 border-sky-400/30"
+                : "bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+            }`}
+          >
+            <span
+              className={`w-1.5 h-1.5 rounded-full ${
+                isFirestoreLive ? "bg-sky-400" : "bg-emerald-400"
+              } animate-pulse`}
+            ></span>
+            {isFirestoreLive ? "☁️ Firestore en direct" : "Enregistré localement"}
           </span>
           <button
             onClick={onOpenBackupModal}
@@ -106,6 +129,50 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             Sauvegardes
           </button>
+        </div>
+
+        {/* User Account / Google Sign-In */}
+        <div className="mt-2.5 pt-2.5 border-t border-white/10">
+          {currentUser ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0">
+                {currentUser.photoURL ? (
+                  <img
+                    src={currentUser.photoURL}
+                    alt={currentUser.displayName || "Utilisateur"}
+                    className="w-6 h-6 rounded-full border border-white/30 shrink-0"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                    {currentUser.email ? currentUser.email[0].toUpperCase() : "U"}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold text-white truncate leading-tight">
+                    {currentUser.displayName || currentUser.email}
+                  </div>
+                  <div className="text-[10px] text-emerald-300 leading-tight">
+                    Connecté &bull; Synchronisé
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={onLogoutGoogle}
+                className="text-slate-400 hover:text-rose-300 p-1 rounded"
+                title="Déconnexion"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onLoginGoogle}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium transition-colors"
+            >
+              <LogIn className="w-3 h-3 text-sky-300" />
+              Se connecter avec Google
+            </button>
+          )}
         </div>
       </div>
 

@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Safety Net: default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidClub(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100;
+    }
+
+    function isValidEvent(data) {
+      return data.nom is string && data.nom.size() > 0 && data.nom.size() <= 200
+        && data.type is string && data.type.size() <= 50
+        && data.cat is string && data.cat.size() <= 100
+        && (!('lieu' in data) || (data.lieu is string && data.lieu.size() <= 200))
+        && (!('horaire' in data) || (data.horaire is string && data.horaire.size() <= 100))
+        && (!('adversaire' in data) || (data.adversaire is string && data.adversaire.size() <= 200))
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000))
+        && (!('materiel' in data) || (data.materiel is list && data.materiel.size() <= 100))
+        && (!('todo' in data) || (data.todo is list && data.todo.size() <= 100))
+        && (!('benevoles' in data) || (data.benevoles is list && data.benevoles.size() <= 100))
+        && (!('com' in data) || (data.com is list && data.com.size() <= 100));
+    }
+
+    // Club configuration
+    match /clubs/{clubId} {
+      allow read: if true;
+      allow write: if isValidId(clubId) && isSignedIn() && isValidClub(request.resource.data);
+    }
+
+    // Matches and events
+    match /events/{eventId} {
+      allow read: if true;
+      allow create: if isValidId(eventId) && isSignedIn() && isValidEvent(request.resource.data);
+      allow update: if isValidId(eventId) && isSignedIn() && isValidEvent(request.resource.data);
+      allow delete: if isValidId(eventId) && isSignedIn();
+    }
+  }
+}
