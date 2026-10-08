@@ -55,6 +55,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const upcomingEvents = events.filter((e) => !isPastDate(e.date));
   const pastEvents = events.filter((e) => isPastDate(e.date));
 
+  // Filter and scroll helper
+  const handleToggleKpiFilter = (filterKey: "missing_volunteers" | "needs_prep") => {
+    setActiveKpiFilter((cur) => {
+      const next = cur === filterKey ? "all" : filterKey;
+      setTimeout(() => {
+        document.getElementById("events-grid-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+      return next;
+    });
+  };
+
+  const handleResetKpiFilter = () => {
+    setActiveKpiFilter("all");
+    setTimeout(() => {
+      document.getElementById("events-grid-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  };
+
   // Count total volunteers required & registered across upcoming events
   let totalVolunteersRequired = 0;
   let totalVolunteersRegistered = 0;
@@ -109,7 +127,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       });
       matchesKpi = hasMissing;
     } else if (activeKpiFilter === "needs_prep") {
-      matchesKpi = calculateProgress(e) < 80;
+      // Matches needing preparation (not 100% complete)
+      matchesKpi = calculateProgress(e) < 100;
     }
 
     return matchesSearch && matchesCat && matchesKpi;
@@ -150,7 +169,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* Stats Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mt-6">
             <button
-              onClick={() => setActiveKpiFilter("all")}
+              onClick={handleResetKpiFilter}
               className={`text-left backdrop-blur-sm border p-3.5 rounded-lg transition-all cursor-pointer ${
                 activeKpiFilter === "all"
                   ? "bg-white/20 border-white ring-2 ring-white/30"
@@ -170,11 +189,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* Bénévoles requis - Actionable KPI */}
             <button
-              onClick={() =>
-                setActiveKpiFilter((cur) =>
-                  cur === "missing_volunteers" ? "all" : "missing_volunteers"
-                )
-              }
+              onClick={() => handleToggleKpiFilter("missing_volunteers")}
               className={`text-left backdrop-blur-sm border p-3.5 rounded-lg transition-all cursor-pointer relative group ${
                 activeKpiFilter === "missing_volunteers"
                   ? "bg-emerald-500/30 border-emerald-300 ring-2 ring-emerald-300"
@@ -212,11 +227,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {/* Préparation - Actionable KPI */}
             <button
-              onClick={() =>
-                setActiveKpiFilter((cur) =>
-                  cur === "needs_prep" ? "all" : "needs_prep"
-                )
-              }
+              onClick={() => handleToggleKpiFilter("needs_prep")}
               className={`text-left backdrop-blur-sm border p-3.5 rounded-lg transition-all cursor-pointer relative group ${
                 activeKpiFilter === "needs_prep"
                   ? "bg-sky-500/30 border-sky-300 ring-2 ring-sky-300"
@@ -238,7 +249,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="text-[11px] text-slate-300 mt-0.5 flex items-center justify-between">
                 <span>Moyenne matériel &amp; tâches</span>
                 <span className="text-[10px] underline decoration-sky-300 text-sky-200 group-hover:text-white">
-                  {activeKpiFilter === "needs_prep" ? "✕ Réinitialiser" : "Filtrer &lt; 80% →"}
+                  {activeKpiFilter === "needs_prep" ? "✕ Réinitialiser" : "Filtrer &agrave; compléter →"}
                 </span>
               </div>
             </button>
@@ -454,7 +465,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       )}
 
       {/* Filter and Events Grid */}
-      <div>
+      <div id="events-grid-section" className="scroll-mt-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-lg font-heading font-bold text-slate-900 flex items-center gap-2">
@@ -462,7 +473,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 {activeKpiFilter === "missing_volunteers"
                   ? "Matchs avec postes bénévoles à pourvoir"
                   : activeKpiFilter === "needs_prep"
-                  ? "Matchs nécessitant de la préparation (< 80%)"
+                  ? "Matchs avec préparation à compléter (< 100%)"
                   : "Tous les rendez-vous à venir"}
               </span>
               <span className="text-xs font-sans font-medium px-2 py-0.5 rounded-full bg-slate-200 text-slate-700">
@@ -472,10 +483,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             {activeKpiFilter !== "all" && (
               <button
-                onClick={() => setActiveKpiFilter("all")}
+                onClick={handleResetKpiFilter}
                 className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-slate-800 text-white font-medium hover:bg-slate-700 transition-colors cursor-pointer"
               >
-                <span>Filtre actif</span>
+                <span>Filtre actif : {activeKpiFilter === "missing_volunteers" ? "Bénévoles manquants" : "Préparation incomplète"}</span>
                 <X className="w-3 h-3" />
               </button>
             )}
