@@ -89,6 +89,23 @@
         }
       },
       "required": ["nom", "type", "cat"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Profil utilisateur avec rôle (Admin, Benevole, Joueur) et statut d'approbation",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 200 },
+        "displayName": { "type": "string", "maxLength": 150 },
+        "photoURL": { "type": "string", "maxLength": 500 },
+        "role": { "type": "string", "enum": ["Admin", "Benevole", "Joueur"] },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "createdAt": { "type": "string" },
+        "approvedAt": { "type": "string" },
+        "approvedBy": { "type": "string" }
+      },
+      "required": ["uid", "email", "role", "status"]
     }
   },
   "firestore": {
@@ -99,6 +116,10 @@
     "/events/{eventId}": {
       "schema": "Event",
       "description": "Collection des matchs et événements du club"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Profils des utilisateurs, approbation par l'administrateur"
     }
   }
 }

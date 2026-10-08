@@ -1,16 +1,14 @@
 import React, { useState } from "react";
-import { Shield, Users, CheckSquare, Calendar, ArrowRight, Sparkles } from "lucide-react";
+import { Shield, Users, CheckSquare, Calendar, Sparkles, Lock } from "lucide-react";
 
 interface LoginPageProps {
   clubName: string;
   onLoginGoogle: () => Promise<void>;
-  onContinueAsGuest: () => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({
   clubName,
   onLoginGoogle,
-  onContinueAsGuest,
 }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -22,7 +20,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       await onLoginGoogle();
     } catch (err: any) {
       console.error(err);
-      setErrorMsg("Connexion annulée ou fermée. Veuillez réessayer.");
+      const msg = err?.message || String(err);
+      if (err?.code === "auth/unauthorized-domain" || msg.includes("unauthorized-domain")) {
+        setErrorMsg(
+          "Domaine non autorisé dans Firebase : le domaine 'laurentp22.github.io' doit être ajouté dans la console Firebase (Authentication > Paramètres > Domaines autorisés)."
+        );
+      } else {
+        setErrorMsg("Connexion annulée ou fermée. Veuillez réessayer.");
+      }
     } finally {
       setLoading(false);
     }
@@ -42,7 +47,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
           <div>
             <div className="text-[11px] font-bold uppercase tracking-wider text-rose-300">
-              Espace Dirigeants &amp; Éducateurs
+              Espace Membres &bull; Accès Sécurisé
             </div>
             <div className="font-heading text-lg font-bold text-white tracking-wide">
               {clubName}
@@ -52,7 +57,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
         <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full">
           <Shield className="w-3.5 h-3.5 text-[#DE4B44]" />
-          <span>Portail FFR &bull; Saison en cours</span>
+          <span>Portail FFR &bull; Validation Administrateur</span>
         </div>
       </header>
 
@@ -62,34 +67,33 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold">
-              <Sparkles className="w-3 h-3 text-rose-400" />
-              Feuille de match &amp; Organisation du club
+              <Lock className="w-3.5 h-3.5 text-rose-400" />
+              Connexion Obligatoire
             </div>
             <h1 className="font-heading text-3xl sm:text-4xl font-bold text-white tracking-wide">
-              Bienvenue au Club
+              Accès au Club
             </h1>
             <p className="text-xs text-slate-300/90 leading-relaxed max-w-xs mx-auto">
-              Connectez-vous pour accéder au calendrier partagé, à la préparation des matchs et à la gestion des bénévoles.
+              Authentification requise pour tous les membres (Admins, Bénévoles, Joueurs). Tout nouveau compte est soumis à validation par l'administrateur du club.
             </p>
           </div>
 
-          {/* Features Preview Mini Grid */}
-          <div className="grid grid-cols-2 gap-2.5 text-xs text-slate-200">
-            <div className="bg-black/25 border border-white/10 p-2.5 rounded-lg flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-sky-400 shrink-0" />
-              <span className="truncate">Calendrier partagé</span>
+          {/* Roles list */}
+          <div className="bg-black/25 border border-white/10 p-3.5 rounded-xl space-y-2 text-xs text-slate-300">
+            <div className="font-bold text-white uppercase text-[10px] tracking-wider mb-1">
+              Rôles autorisés au club :
             </div>
-            <div className="bg-black/25 border border-white/10 p-2.5 rounded-lg flex items-center gap-2">
-              <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span className="truncate">Feuilles de route</span>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+              <span><strong>Admin</strong> : Gestion complète du club, des matchs et validation des membres</span>
             </div>
-            <div className="bg-black/25 border border-white/10 p-2.5 rounded-lg flex items-center gap-2">
-              <Users className="w-4 h-4 text-amber-400 shrink-0" />
-              <span className="truncate">Pôles bénévoles</span>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
+              <span><strong>Bénévole</strong> : Suivi logistique, matériel, créneaux buvette &amp; feuilles</span>
             </div>
-            <div className="bg-black/25 border border-white/10 p-2.5 rounded-lg flex items-center gap-2">
-              <Shield className="w-4 h-4 text-rose-400 shrink-0" />
-              <span className="truncate">Déclaration FFR</span>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
+              <span><strong>Joueur</strong> : Calendrier des rencontres, coups d'envoi et convocations</span>
             </div>
           </div>
 
@@ -100,9 +104,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="space-y-3 pt-2">
-            {/* Google Sign In Button */}
+          {/* Action Button: Google Sign In */}
+          <div className="space-y-3 pt-1">
             <button
               onClick={handleGoogleClick}
               disabled={loading}
@@ -133,22 +136,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <span>
                 {loading
                   ? "Connexion en cours..."
-                  : "Continuer avec Google (Synchronisé)"}
+                  : "Se connecter avec Google"}
               </span>
-            </button>
-
-            {/* Guest / Consultation Mode */}
-            <button
-              onClick={onContinueAsGuest}
-              className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-            >
-              <span>Accéder en mode invité (hors-ligne)</span>
-              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="pt-2 border-t border-white/10 text-center text-[11px] text-slate-400">
-            🔒 Données sécurisées &bull; Base Cloud Firestore synchronisée
+            🔒 Sécurisé via Google &bull; Approbation par l'administrateur
           </div>
         </div>
       </main>

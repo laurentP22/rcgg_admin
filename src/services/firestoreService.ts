@@ -8,11 +8,122 @@ import {
   getDocs,
   Unsubscribe,
 } from "firebase/firestore";
+import { User } from "firebase/auth";
 import { db, auth, OperationType, handleFirestoreError } from "../firebase";
-import { EventItem } from "../types";
+import { EventItem, UserProfile, UserRole, UserStatus, BOOTSTRAP_ADMIN_EMAIL } from "../types";
 
 const CLUB_DOC_PATH = "clubs/default";
 const EVENTS_COLLECTION = "events";
+const USERS_COLLECTION = "users";
+
+export async function syncUserProfile(user: User): Promise<UserProfile> {
+  const userRef = doc(db, USERS_COLLECTION, user.uid);
+  const snap = await getDoc(userRef);
+
+  const isBootstrap = user.email?.toLowerCase() === BOOTSTRAP_ADMIN_EMAIL.toLowerCase();
+
+  if (snap.exists()) {
+    const data = snap.data() as UserProfile;
+    // Ensure bootstrap admin is always Admin and approved
+    if (isBootstrap && (data.role !== "Admin" || data.status !== "approved")) {
+      const updatedProfile: UserProfile = {
+        ...data,
+        role: "Admin",
+        status: "approved",
+      };
+      await setDoc(userRef, updatedProfile, { merge: true });
+      return updatedProfile;
+    }
+    return data;
+  }
+
+  // Create new profile
+  const newProfile: UserProfile = {
+    uid: user.uid,
+    email: user.email || "",
+    displayName: user.displayName || user.email?.split("@")[0] || "Membre du club",
+    photoURL: user.photoURL || "",
+    role: isBootstrap ? "Admin" : "Benevole",
+    status: isBootstrap ? "approved" : "pending",
+    createdAt: new Date().toISOString(),
+    ...(isBootstrap ? { approvedAt: new Date().toISOString(), approvedBy: "system" } : {}),
+  };
+
+  await setDoc(userRef, newProfile);
+  return newProfile;
+}
+
+export function subscribeToUserProfile(
+  uid: string,
+  onData: (profile: UserProfile | null) => void,
+  onError?: (err: any) => void
+): Unsubscribe {
+  const userRef = doc(db, USERS_COLLECTION, uid);
+  return onSnapshot(
+    userRef,
+    (snap) => {
+      if (snap.exists()) {
+        onData(snap.data() as UserProfile);
+      } else {
+        onData(null);
+      }
+    },
+    (error) => {
+      console.warn("Erreur écoute profil utilisateur:", error);
+      onError?.(error);
+    }
+  );
+}
+
+export function subscribeToAllUsers(
+  onData: (users: UserProfile[]) => void,
+  onError?: (err: any) => void
+): Unsubscribe {
+  const usersRef = collection(db, USERS_COLLECTION);
+  return onSnapshot(
+    usersRef,
+    (snapshot) => {
+      const list: UserProfile[] = [];
+      snapshot.forEach((d) => {
+        list.push(d.data() as UserProfile);
+      });
+      // Sort: pending first, then by name
+      list.sort((a, b) => {
+        if (a.status === "pending" && b.status !== "pending") return -1;
+        if (a.status !== "pending" && b.status === "pending") return 1;
+        return (a.displayName || "").localeCompare(b.displayName || "");
+      });
+      onData(list);
+    },
+    (error) => {
+      console.warn("Erreur écoute liste des membres:", error);
+      onError?.(error);
+    }
+  );
+}
+
+export async function adminUpdateUser(
+  targetUid: string,
+  role: UserRole,
+  status: UserStatus,
+  adminUid: string
+): Promise<void> {
+  const userRef = doc(db, USERS_COLLECTION, targetUid);
+  const dataToUpdate: Record<string, any> = {
+    role,
+    status,
+  };
+  if (status === "approved") {
+    dataToUpdate.approvedAt = new Date().toISOString();
+    dataToUpdate.approvedBy = adminUid;
+  }
+  await setDoc(userRef, dataToUpdate, { merge: true });
+}
+
+export async function adminDeleteUser(targetUid: string): Promise<void> {
+  const userRef = doc(db, USERS_COLLECTION, targetUid);
+  await deleteDoc(userRef);
+}
 
 export function subscribeToClub(
   onData: (clubName: string) => void,

@@ -3,6 +3,7 @@ import { User } from "firebase/auth";
 import {
   TYPES,
   EventItem,
+  UserProfile,
   formatDateShort,
   calculateProgress,
   isPastDate,
@@ -24,6 +25,7 @@ import {
   LogOut,
   Cloud,
   CloudCheck,
+  Users,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -39,6 +41,9 @@ interface SidebarProps {
   onNewEvent: () => void;
   onOpenBackupModal: () => void;
   currentUser: User | null;
+  currentUserProfile: UserProfile | null;
+  pendingUsersCount: number;
+  onOpenUserManagement: () => void;
   onLoginGoogle: () => void;
   onLogoutGoogle: () => void;
   isFirestoreLive: boolean;
@@ -57,12 +62,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onNewEvent,
   onOpenBackupModal,
   currentUser,
+  currentUserProfile,
+  pendingUsersCount,
+  onOpenUserManagement,
   onLoginGoogle,
   onLogoutGoogle,
   isFirestoreLive,
 }) => {
   const [showPast, setShowPast] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
+
+  const isAdmin = currentUserProfile?.role === "Admin";
+  const isJoueur = currentUserProfile?.role === "Joueur";
 
   // Filter events
   const filteredEvents = events.filter((e) => {
@@ -131,43 +142,78 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* User Account / Google Sign-In */}
-        <div className="mt-2.5 pt-2.5 border-t border-white/10">
+        {/* User Account / Role / Google Sign-In */}
+        <div className="mt-2.5 pt-2.5 border-t border-white/10 space-y-2">
           {currentUser ? (
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 min-w-0">
-                {currentUser.photoURL ? (
-                  <img
-                    src={currentUser.photoURL}
-                    alt={currentUser.displayName || "Utilisateur"}
-                    className="w-6 h-6 rounded-full border border-white/30 shrink-0"
-                  />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
-                    {currentUser.email ? currentUser.email[0].toUpperCase() : "U"}
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <div className="text-[11px] font-bold text-white truncate leading-tight">
-                    {currentUser.displayName || currentUser.email}
-                  </div>
-                  <div className="text-[10px] text-emerald-300 leading-tight">
-                    Connecté &bull; Synchronisé
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  {currentUser.photoURL ? (
+                    <img
+                      src={currentUser.photoURL}
+                      alt={currentUser.displayName || "Utilisateur"}
+                      className="w-7 h-7 rounded-full border border-white/30 shrink-0 object-cover"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-rose-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                      {currentUser.email ? currentUser.email[0].toUpperCase() : "U"}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold text-white truncate leading-tight">
+                      {currentUser.displayName || currentUser.email}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span
+                        className={`text-[9.5px] font-bold px-1.5 py-0.2 rounded ${
+                          currentUserProfile?.role === "Admin"
+                            ? "bg-rose-500 text-white"
+                            : currentUserProfile?.role === "Benevole"
+                            ? "bg-amber-400 text-slate-900"
+                            : "bg-sky-400 text-slate-900"
+                        }`}
+                      >
+                        {currentUserProfile?.role || "Membre"}
+                      </span>
+                      <span className="text-[10px] text-emerald-300">
+                        &bull; Validé
+                      </span>
+                    </div>
                   </div>
                 </div>
+                <button
+                  onClick={onLogoutGoogle}
+                  className="text-slate-400 hover:text-rose-300 p-1.5 rounded hover:bg-white/10 transition-colors cursor-pointer"
+                  title="Se déconnecter"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <button
-                onClick={onLogoutGoogle}
-                className="text-slate-400 hover:text-rose-300 p-1 rounded"
-                title="Déconnexion"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
+
+              {/* Admin Button: Manage Members & Approvals */}
+              {isAdmin && (
+                <button
+                  onClick={onOpenUserManagement}
+                  className="w-full flex items-center justify-between py-1.5 px-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-white text-[11px] font-semibold transition-colors border border-white/10 cursor-pointer"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-rose-300" />
+                    Membres du club
+                  </span>
+                  {pendingUsersCount > 0 ? (
+                    <span className="bg-amber-500 text-slate-900 font-bold text-[10px] px-1.5 py-0.2 rounded-full animate-bounce">
+                      {pendingUsersCount} en attente
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400">Gérer &rarr;</span>
+                  )}
+                </button>
+              )}
+            </>
           ) : (
             <button
               onClick={onLoginGoogle}
-              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 px-2 rounded bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium transition-colors cursor-pointer"
             >
               <LogIn className="w-3 h-3 text-sky-300" />
               Se connecter avec Google
@@ -176,16 +222,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Main Action: New Event */}
-      <div className="p-4 pb-2">
-        <button
-          onClick={onNewEvent}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-md bg-[#C1272D] hover:bg-[#DE4B44] text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
-        >
-          <Plus className="w-4 h-4 stroke-[2.5]" />
-          <span>+ Nouvel événement</span>
-        </button>
-      </div>
+      {/* Main Action: New Event (Visible to Admins and Bénévoles) */}
+      {!isJoueur && (
+        <div className="p-4 pb-2">
+          <button
+            onClick={onNewEvent}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-md bg-[#C1272D] hover:bg-[#DE4B44] text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all active:scale-[0.99] cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>+ Nouvel événement</span>
+          </button>
+        </div>
+      )}
 
       {/* Navigation tabs */}
       <div className="px-4 py-2">

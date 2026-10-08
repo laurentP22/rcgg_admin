@@ -1,3 +1,20 @@
+export type UserRole = "Admin" | "Benevole" | "Joueur";
+export type UserStatus = "pending" | "approved" | "rejected";
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  role: UserRole;
+  status: UserStatus;
+  createdAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
+}
+
+export const BOOTSTRAP_ADMIN_EMAIL = "laurent22100@gmail.com";
+
 export interface ChecklistItem {
   id: string;
   label: string;

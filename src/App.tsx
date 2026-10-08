@@ -8,6 +8,11 @@ import {
   saveEventToFirestore,
   deleteEventFromFirestore,
   seedInitialFirestoreData,
+  syncUserProfile,
+  subscribeToUserProfile,
+  subscribeToAllUsers,
+  adminUpdateUser,
+  adminDeleteUser,
 } from "./services/firestoreService";
 import {
   EventItem,
@@ -15,6 +20,9 @@ import {
   uid,
   TYPES,
   CATS,
+  UserProfile,
+  UserRole,
+  UserStatus,
 } from "./types";
 import { Sidebar } from "./components/Sidebar";
 import { DashboardView } from "./components/DashboardView";
@@ -23,14 +31,18 @@ import { EventDetailView } from "./components/EventDetailView";
 import { PrintSheetModal } from "./components/PrintSheetModal";
 import { DataBackupModal } from "./components/DataBackupModal";
 import { LoginPage } from "./components/LoginPage";
-import { Menu, X, Shield, Plus, Calendar as CalendarIcon, LayoutDashboard } from "lucide-react";
+import { PendingApprovalPage } from "./components/PendingApprovalPage";
+import { UserManagementModal } from "./components/UserManagementModal";
+import { Menu, X, Shield, Plus, Calendar as CalendarIcon, LayoutDashboard, Clock } from "lucide-react";
 
 const STORAGE_KEY = "rugby_planner_v1";
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [userManagementOpen, setUserManagementOpen] = useState(false);
   const [isFirestoreLive, setIsFirestoreLive] = useState(false);
-  const [hasEnteredApp, setHasEnteredApp] = useState(false);
   const hasSeededFirestore = useRef(false);
 
   // Initialize state with localStorage or sample data
@@ -84,21 +96,56 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // 1. Listen to Auth State
+  // 1. Listen to Auth State and sync User Profile
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
+      if (user) {
+        try {
+          const profile = await syncUserProfile(user);
+          setCurrentUserProfile(profile);
+        } catch (err) {
+          console.error("Erreur syncUserProfile:", err);
+        }
+      } else {
+        setCurrentUserProfile(null);
+      }
     });
     return () => unsub();
   }, []);
 
-  // 2. Test Firestore connection on boot and attach real-time subscriptions
+  // Listen to profile updates in real time (e.g. when Admin approves user!)
+  useEffect(() => {
+    if (!currentUser) return;
+    const unsub = subscribeToUserProfile(currentUser.uid, (profile) => {
+      if (profile) {
+        setCurrentUserProfile(profile);
+      }
+    });
+    return () => unsub();
+  }, [currentUser]);
+
+  // If Admin, listen to all users in real time for approval
+  useEffect(() => {
+    if (currentUserProfile?.role === "Admin" && currentUserProfile?.status === "approved") {
+      const unsub = subscribeToAllUsers((users) => {
+        setAllUsers(users);
+      });
+      return () => unsub();
+    }
+  }, [currentUserProfile?.role, currentUserProfile?.status]);
+
+  // 2. Attach real-time subscriptions when user is authenticated
   useEffect(() => {
     testConnection().then((ok) => {
       if (ok) {
         setIsFirestoreLive(true);
       }
     });
+
+    if (!currentUser || currentUserProfile?.status !== "approved") {
+      return;
+    }
 
     const unsubClub = subscribeToClub((liveName) => {
       if (liveName) {
@@ -112,7 +159,6 @@ export default function App() {
       if (liveEvents.length > 0) {
         setEvents(liveEvents);
       } else if (!hasSeededFirestore.current && auth.currentUser) {
-        // If Firestore is empty on first boot and user is signed in, seed local events to Firestore
         hasSeededFirestore.current = true;
         seedInitialFirestoreData(clubName, events).catch(() => {});
       }
@@ -122,7 +168,7 @@ export default function App() {
       unsubClub();
       unsubEvents();
     };
-  }, []);
+  }, [currentUser, currentUserProfile?.status]);
 
   // Persist to local storage as offline cache
   useEffect(() => {
@@ -148,7 +194,11 @@ export default function App() {
       const user = await loginWithGoogle();
       if (user) {
         showToast(`Connecté en tant que ${user.displayName || user.email}`);
-        seedInitialFirestoreData(clubName, events).catch(() => {});
+        const profile = await syncUserProfile(user);
+        setCurrentUserProfile(profile);
+        if (profile.status === "approved") {
+          seedInitialFirestoreData(clubName, events).catch(() => {});
+        }
       }
     } catch (err: any) {
       showToast("Connexion annulée ou erreur d'authentification");
@@ -158,11 +208,20 @@ export default function App() {
   const handleLogoutGoogle = async () => {
     try {
       await logoutUser();
-      setHasEnteredApp(false);
+      setCurrentUserProfile(null);
       showToast("Déconnexion réussie");
     } catch (err) {
       showToast("Erreur lors de la déconnexion");
     }
+  };
+
+  const handleAdminUpdateUser = async (targetUid: string, role: UserRole, status: UserStatus) => {
+    if (!currentUser) return;
+    await adminUpdateUser(targetUid, role, status, currentUser.uid);
+  };
+
+  const handleAdminDeleteUser = async (targetUid: string) => {
+    await adminDeleteUser(targetUid);
   };
 
   const handleClubNameChange = (name: string) => {
@@ -295,13 +354,59 @@ export default function App() {
 
   const selectedEvent = events.find((e) => e.id === selectedEventId) || null;
 
-  if (!currentUser && !hasEnteredApp) {
+  if (!currentUser) {
     return (
       <LoginPage
         clubName={clubName}
         onLoginGoogle={handleLoginGoogle}
-        onContinueAsGuest={() => setHasEnteredApp(true)}
       />
+    );
+  }
+
+  if (!currentUserProfile) {
+    return (
+      <div className="min-h-screen bg-[#0E1E38] text-white flex flex-col items-center justify-center p-4">
+        <div className="w-10 h-10 border-3 border-white/20 border-t-[#DE4B44] rounded-full animate-spin mb-3"></div>
+        <div className="text-sm font-semibold">Vérification de votre compte au club...</div>
+      </div>
+    );
+  }
+
+  if (currentUserProfile.status === "pending") {
+    return (
+      <PendingApprovalPage
+        profile={currentUserProfile}
+        clubName={clubName}
+        onRefresh={() => {
+          if (currentUser) {
+            syncUserProfile(currentUser).then((p) => {
+              setCurrentUserProfile(p);
+              showToast("Statut actualisé");
+            });
+          }
+        }}
+        onLogout={handleLogoutGoogle}
+      />
+    );
+  }
+
+  if (currentUserProfile.status === "rejected") {
+    return (
+      <div className="min-h-screen bg-[#0E1E38] text-white flex flex-col items-center justify-center p-4 text-center">
+        <div className="w-12 h-12 rounded-full bg-red-600/20 text-red-400 flex items-center justify-center mx-auto mb-3">
+          <X className="w-6 h-6" />
+        </div>
+        <h1 className="font-heading text-2xl font-bold mb-2">Accès refusé</h1>
+        <p className="text-xs text-slate-300 max-w-sm mb-4">
+          Votre compte n'a pas été validé par l'administrateur du club.
+        </p>
+        <button
+          onClick={handleLogoutGoogle}
+          className="px-4 py-2 bg-white text-slate-900 rounded-lg text-xs font-semibold cursor-pointer"
+        >
+          Se déconnecter
+        </button>
+      </div>
     );
   }
 
@@ -322,12 +427,14 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleNewEvent}
-            className="p-1.5 bg-[#C1272D] text-white rounded text-xs font-semibold flex items-center gap-1 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
+          {currentUserProfile?.role !== "Joueur" && (
+            <button
+              onClick={handleNewEvent}
+              className="p-1.5 bg-[#C1272D] text-white rounded text-xs font-semibold flex items-center gap-1 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          )}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 hover:bg-white/10 rounded text-slate-200 cursor-pointer"
@@ -364,6 +471,9 @@ export default function App() {
           onNewEvent={handleNewEvent}
           onOpenBackupModal={() => setBackupModalOpen(true)}
           currentUser={currentUser}
+          currentUserProfile={currentUserProfile}
+          pendingUsersCount={allUsers.filter((u) => u.status === "pending").length}
+          onOpenUserManagement={() => setUserManagementOpen(true)}
           onLoginGoogle={handleLoginGoogle}
           onLogoutGoogle={handleLogoutGoogle}
           isFirestoreLive={isFirestoreLive}
@@ -399,6 +509,19 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* User Management Modal (Admin only) */}
+      {userManagementOpen && currentUser && (
+        <UserManagementModal
+          isOpen={userManagementOpen}
+          onClose={() => setUserManagementOpen(false)}
+          users={allUsers}
+          currentAdminUid={currentUser.uid}
+          onUpdateUser={handleAdminUpdateUser}
+          onDeleteUser={handleAdminDeleteUser}
+          onShowToast={showToast}
+        />
+      )}
 
       {/* Print Sheet Modal */}
       {printModalOpen && (
