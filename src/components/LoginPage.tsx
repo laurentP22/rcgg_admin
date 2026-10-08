@@ -159,17 +159,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <button
                   type="button"
                   onClick={() => onLoginAsDemo(sampleBenevole)}
-                  className="p-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-200 text-xs font-semibold flex flex-col items-start gap-1 transition-all cursor-pointer group active:scale-98 text-left"
+                  className="p-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-200 text-xs font-semibold flex flex-col items-start gap-1 transition-all cursor-pointer group active:scale-98 text-left"
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className="flex items-center gap-1.5 text-amber-300 font-bold">
-                      <HeartHandshake className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="flex items-center gap-1.5 text-amber-300 font-bold text-sm">
+                      <HeartHandshake className="w-4 h-4 text-amber-400" />
                       Bénévole
                     </span>
-                    <ArrowRight className="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                    <ArrowRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-amber-300" />
                   </div>
-                  <div className="text-[10px] text-slate-300 group-hover:text-white truncate w-full">
-                    {sampleBenevole.displayName}
+                  <div className="text-[11px] text-amber-200/70 font-normal">
+                    Accès Bénévole
                   </div>
                 </button>
 
@@ -177,17 +177,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <button
                   type="button"
                   onClick={() => onLoginAsDemo(sampleJoueur)}
-                  className="p-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-200 text-xs font-semibold flex flex-col items-start gap-1 transition-all cursor-pointer group active:scale-98 text-left"
+                  className="p-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-200 text-xs font-semibold flex flex-col items-start gap-1 transition-all cursor-pointer group active:scale-98 text-left"
                 >
                   <div className="flex items-center justify-between w-full">
-                    <span className="flex items-center gap-1.5 text-sky-300 font-bold">
-                      <Trophy className="w-3.5 h-3.5 text-sky-400" />
+                    <span className="flex items-center gap-1.5 text-sky-300 font-bold text-sm">
+                      <Trophy className="w-4 h-4 text-sky-400" />
                       Joueur
                     </span>
-                    <ArrowRight className="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                    <ArrowRight className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all text-sky-300" />
                   </div>
-                  <div className="text-[10px] text-slate-300 group-hover:text-white truncate w-full">
-                    {sampleJoueur.displayName}
+                  <div className="text-[11px] text-sky-200/70 font-normal">
+                    Accès Joueur
                   </div>
                 </button>
               </div>

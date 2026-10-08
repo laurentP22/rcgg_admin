@@ -18,8 +18,8 @@ export const BOOTSTRAP_ADMIN_EMAIL = "laurent22100@gmail.com";
 export const DEFAULT_SAMPLE_USERS: UserProfile[] = [
   {
     uid: "fake-benevole-1",
-    displayName: "Marc Dupont (Responsable Buvette)",
-    email: "marc.dupont.rugby@gmail.com",
+    displayName: "Bénévole (Buvette & Logistique)",
+    email: "benevole.buvette@rugby-club.fr",
     role: "Benevole",
     status: "approved",
     createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
@@ -28,8 +28,8 @@ export const DEFAULT_SAMPLE_USERS: UserProfile[] = [
   },
   {
     uid: "fake-benevole-2",
-    displayName: "Sophie Martin (Intendance & Pharmacie)",
-    email: "sophie.martin.rc@gmail.com",
+    displayName: "Bénévole (Intendance & Pharmacie)",
+    email: "benevole.intendance@rugby-club.fr",
     role: "Benevole",
     status: "approved",
     createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
@@ -38,8 +38,8 @@ export const DEFAULT_SAMPLE_USERS: UserProfile[] = [
   },
   {
     uid: "fake-joueur-1",
-    displayName: "Antoine Dupont (Demi de Mêlée - XV)",
-    email: "antoine.dupont9@gmail.com",
+    displayName: "Joueur (Demi de Mêlée - XV)",
+    email: "joueur.melee@rugby-club.fr",
     role: "Joueur",
     status: "approved",
     createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
@@ -48,8 +48,8 @@ export const DEFAULT_SAMPLE_USERS: UserProfile[] = [
   },
   {
     uid: "fake-joueur-2",
-    displayName: "Romain Ntamack (Demi d'Ouverture - XV)",
-    email: "romain.ntamack10@gmail.com",
+    displayName: "Joueur (Demi d'Ouverture - XV)",
+    email: "joueur.ouverture@rugby-club.fr",
     role: "Joueur",
     status: "approved",
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -58,8 +58,8 @@ export const DEFAULT_SAMPLE_USERS: UserProfile[] = [
   },
   {
     uid: "fake-pending-1",
-    displayName: "Julien Marchand (Nouveau Licencié)",
-    email: "julien.marchand.rc@gmail.com",
+    displayName: "Joueur (Nouveau Licencié - En attente)",
+    email: "joueur.nouveau@rugby-club.fr",
     role: "Joueur",
     status: "pending",
     createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),

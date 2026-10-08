@@ -529,7 +529,7 @@ export default function App() {
               }}
               className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-medium cursor-pointer transition-colors border border-white/20"
             >
-              Basculer vers {currentUserProfile?.role === "Benevole" ? "Joueur (Antoine)" : "Bénévole (Marc)"}
+              Basculer vers {currentUserProfile?.role === "Benevole" ? "Joueur" : "Bénévole"}
             </button>
             <button
               onClick={handleExitDemo}
