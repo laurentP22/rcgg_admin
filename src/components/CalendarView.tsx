@@ -16,12 +16,14 @@ interface CalendarViewProps {
   events: EventItem[];
   onSelectEvent: (id: string) => void;
   onNewEventForDate: (dateIso: string) => void;
+  isAdmin?: boolean;
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
   events,
   onSelectEvent,
   onNewEventForDate,
+  isAdmin = false,
 }) => {
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
@@ -190,14 +192,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     {cell.date.getDate()}
                   </span>
 
-                  {/* Add Event shortcut on hover */}
-                  <button
-                    onClick={() => onNewEventForDate(cell.iso)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100"
-                    title={`Créer un événement le ${formatDateFrench(cell.iso)}`}
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
+                  {/* Add Event shortcut on hover - Admin only */}
+                  {isAdmin && (
+                    <button
+                      onClick={() => onNewEventForDate(cell.iso)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                      title={`Créer un événement le ${formatDateFrench(cell.iso)}`}
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
 
                 {/* Day Events List */}

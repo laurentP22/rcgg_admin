@@ -66,10 +66,13 @@ service cloud.firestore {
       allow get: if isValidId(userId) && isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow list: if isSignedIn() && isAdmin();
       
-      // Self registration (bootstrap admin gets auto-approved Admin, others get pending)
-      allow create: if isValidId(userId) && isSignedIn() && request.auth.uid == userId && isValidUserProfile(request.resource.data) && (
-        (isBootstrapAdmin() && request.resource.data.role == 'Admin' && request.resource.data.status == 'approved') ||
-        (!isBootstrapAdmin() && request.resource.data.status == 'pending' && request.resource.data.role in ['Benevole', 'Joueur'])
+      // Self registration (bootstrap admin gets auto-approved Admin, others get pending), or Admin can create members/samples
+      allow create: if isValidId(userId) && isSignedIn() && (
+        (isAdmin() && isValidUserProfile(request.resource.data)) ||
+        (request.auth.uid == userId && isValidUserProfile(request.resource.data) && (
+          (isBootstrapAdmin() && request.resource.data.role == 'Admin' && request.resource.data.status == 'approved') ||
+          (!isBootstrapAdmin() && request.resource.data.status == 'pending' && request.resource.data.role in ['Benevole', 'Joueur'])
+        ))
       );
 
       // Updates: Admins can update roles/status; users can only update display info
@@ -92,8 +95,8 @@ service cloud.firestore {
     match /events/{eventId} {
       allow get: if isValidId(eventId) && isSignedIn();
       allow list: if isSignedIn();
-      allow create: if isValidId(eventId) && (isAdmin() || isApprovedUser()) && isValidEvent(request.resource.data);
-      allow update: if isValidId(eventId) && (isAdmin() || isApprovedUser()) && isValidEvent(request.resource.data);
+      allow create: if isValidId(eventId) && isAdmin() && isValidEvent(request.resource.data);
+      allow update: if isValidId(eventId) && isAdmin() && isValidEvent(request.resource.data);
       allow delete: if isValidId(eventId) && isAdmin();
     }
   }

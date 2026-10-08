@@ -1,14 +1,17 @@
 import React, { useState } from "react";
-import { Shield, Users, CheckSquare, Calendar, Sparkles, Lock } from "lucide-react";
+import { Shield, Users, CheckSquare, Calendar, Sparkles, Lock, Trophy, HeartHandshake, ArrowRight } from "lucide-react";
+import { UserProfile, DEFAULT_SAMPLE_USERS } from "../types";
 
 interface LoginPageProps {
   clubName: string;
   onLoginGoogle: () => Promise<void>;
+  onLoginAsDemo?: (profile: UserProfile) => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({
   clubName,
   onLoginGoogle,
+  onLoginAsDemo,
 }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -23,7 +26,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       const msg = err?.message || String(err);
       if (err?.code === "auth/unauthorized-domain" || msg.includes("unauthorized-domain")) {
         setErrorMsg(
-          "Domaine non autorisé dans Firebase : le domaine 'laurentp22.github.io' doit être ajouté dans la console Firebase (Authentication > Paramètres > Domaines autorisés)."
+          "Domaine non autorisé dans Firebase : le domaine 'laurentp22.github.io' doit être ajouté dans la console Firebase (Authentication > Paramètres > Domaines autorisés). Vous pouvez aussi utiliser les boutons démo ci-dessous pour tester immédiatement."
         );
       } else {
         setErrorMsg("Connexion annulée ou fermée. Veuillez réessayer.");
@@ -32,6 +35,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       setLoading(false);
     }
   };
+
+  // Find sample Benevole and Joueur
+  const sampleBenevole = DEFAULT_SAMPLE_USERS.find((u) => u.role === "Benevole" && u.status === "approved") || DEFAULT_SAMPLE_USERS[0];
+  const sampleJoueur = DEFAULT_SAMPLE_USERS.find((u) => u.role === "Joueur" && u.status === "approved") || DEFAULT_SAMPLE_USERS[2];
 
   return (
     <div className="min-h-screen bg-[#0E1E38] text-white flex flex-col justify-between relative overflow-hidden font-sans selection:bg-[#DE4B44] selection:text-white">
@@ -63,43 +70,43 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
       {/* Center Sign-in Box */}
       <main className="flex-1 flex items-center justify-center p-4 relative z-10 my-auto">
-        <div className="w-full max-w-md bg-[#162B50]/90 backdrop-blur-md rounded-2xl border border-white/15 p-7 sm:p-9 shadow-2xl space-y-6">
+        <div className="w-full max-w-md bg-[#162B50]/90 backdrop-blur-md rounded-2xl border border-white/15 p-6 sm:p-8 shadow-2xl space-y-5">
           {/* Header */}
-          <div className="text-center space-y-2">
+          <div className="text-center space-y-1.5">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-semibold">
               <Lock className="w-3.5 h-3.5 text-rose-400" />
               Connexion Obligatoire
             </div>
-            <h1 className="font-heading text-3xl sm:text-4xl font-bold text-white tracking-wide">
+            <h1 className="font-heading text-2xl sm:text-3xl font-bold text-white tracking-wide">
               Accès au Club
             </h1>
             <p className="text-xs text-slate-300/90 leading-relaxed max-w-xs mx-auto">
-              Authentification requise pour tous les membres (Admins, Bénévoles, Joueurs). Tout nouveau compte est soumis à validation par l'administrateur du club.
+              Authentification requise pour tous les membres (Admins, Bénévoles, Joueurs). Tout nouveau compte est soumis à validation.
             </p>
           </div>
 
           {/* Roles list */}
-          <div className="bg-black/25 border border-white/10 p-3.5 rounded-xl space-y-2 text-xs text-slate-300">
+          <div className="bg-black/25 border border-white/10 p-3 rounded-xl space-y-2 text-xs text-slate-300">
             <div className="font-bold text-white uppercase text-[10px] tracking-wider mb-1">
               Rôles autorisés au club :
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
-              <span><strong>Admin</strong> : Gestion complète du club, des matchs et validation des membres</span>
+              <span><strong>Admin</strong> : Gestion complète du club, matchs &amp; validation des membres</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" />
-              <span><strong>Bénévole</strong> : Suivi logistique, matériel, créneaux buvette &amp; feuilles</span>
+              <span><strong>Bénévole</strong> : Suivi logistique, buvette, matériel &amp; feuilles</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
-              <span><strong>Joueur</strong> : Calendrier des rencontres, coups d'envoi et convocations</span>
+              <span><strong>Joueur</strong> : Calendrier des rencontres, convocations &amp; horaires</span>
             </div>
           </div>
 
           {/* Error Message */}
           {errorMsg && (
-            <div className="p-3 rounded-lg bg-red-950/60 border border-red-500/50 text-red-200 text-xs text-center font-medium">
+            <div className="p-3 rounded-lg bg-red-950/60 border border-red-500/50 text-red-200 text-xs text-center font-medium leading-relaxed">
               {errorMsg}
             </div>
           )}
@@ -109,7 +116,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             <button
               onClick={handleGoogleClick}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.99] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed group"
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-semibold text-sm shadow-lg hover:shadow-xl transition-all active:scale-[0.99] cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed group"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
@@ -141,8 +148,54 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             </button>
           </div>
 
+          {/* Quick Demo Accounts: Fake Benevole & Joueur */}
+          {onLoginAsDemo && (
+            <div className="pt-3 border-t border-white/10 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-slate-300 font-semibold uppercase tracking-wider">
+                <span>Comptes de test (Sans compte Google) :</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* Fake Benevole */}
+                <button
+                  type="button"
+                  onClick={() => onLoginAsDemo(sampleBenevole)}
+                  className="p-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-200 text-xs font-semibold flex flex-col items-start gap-1 transition-all cursor-pointer group active:scale-98 text-left"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="flex items-center gap-1.5 text-amber-300 font-bold">
+                      <HeartHandshake className="w-3.5 h-3.5 text-amber-400" />
+                      Bénévole
+                    </span>
+                    <ArrowRight className="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <div className="text-[10px] text-slate-300 group-hover:text-white truncate w-full">
+                    {sampleBenevole.displayName}
+                  </div>
+                </button>
+
+                {/* Fake Joueur */}
+                <button
+                  type="button"
+                  onClick={() => onLoginAsDemo(sampleJoueur)}
+                  className="p-2.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-200 text-xs font-semibold flex flex-col items-start gap-1 transition-all cursor-pointer group active:scale-98 text-left"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="flex items-center gap-1.5 text-sky-300 font-bold">
+                      <Trophy className="w-3.5 h-3.5 text-sky-400" />
+                      Joueur
+                    </span>
+                    <ArrowRight className="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <div className="text-[10px] text-slate-300 group-hover:text-white truncate w-full">
+                    {sampleJoueur.displayName}
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="pt-2 border-t border-white/10 text-center text-[11px] text-slate-400">
-            🔒 Sécurisé via Google &bull; Approbation par l'administrateur
+            🔒 Sécurisé &bull; Validation par l'administrateur
           </div>
         </div>
       </main>

@@ -10,7 +10,7 @@ import {
 } from "firebase/firestore";
 import { User } from "firebase/auth";
 import { db, auth, OperationType, handleFirestoreError } from "../firebase";
-import { EventItem, UserProfile, UserRole, UserStatus, BOOTSTRAP_ADMIN_EMAIL } from "../types";
+import { EventItem, UserProfile, UserRole, UserStatus, BOOTSTRAP_ADMIN_EMAIL, DEFAULT_SAMPLE_USERS } from "../types";
 
 const CLUB_DOC_PATH = "clubs/default";
 const EVENTS_COLLECTION = "events";
@@ -123,6 +123,20 @@ export async function adminUpdateUser(
 export async function adminDeleteUser(targetUid: string): Promise<void> {
   const userRef = doc(db, USERS_COLLECTION, targetUid);
   await deleteDoc(userRef);
+}
+
+export async function seedSampleUsersToFirestore(adminEmail: string = BOOTSTRAP_ADMIN_EMAIL): Promise<void> {
+  for (const sampleUser of DEFAULT_SAMPLE_USERS) {
+    try {
+      const userRef = doc(db, USERS_COLLECTION, sampleUser.uid);
+      await setDoc(userRef, {
+        ...sampleUser,
+        approvedBy: sampleUser.status === "approved" ? adminEmail : undefined,
+      }, { merge: true });
+    } catch (err) {
+      console.warn(`Impossible d'insérer l'utilisateur échantillon ${sampleUser.displayName}:`, err);
+    }
+  }
 }
 
 export function subscribeToClub(

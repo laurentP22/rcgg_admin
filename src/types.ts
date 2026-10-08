@@ -15,6 +15,57 @@ export interface UserProfile {
 
 export const BOOTSTRAP_ADMIN_EMAIL = "laurent22100@gmail.com";
 
+export const DEFAULT_SAMPLE_USERS: UserProfile[] = [
+  {
+    uid: "fake-benevole-1",
+    displayName: "Marc Dupont (Responsable Buvette)",
+    email: "marc.dupont.rugby@gmail.com",
+    role: "Benevole",
+    status: "approved",
+    createdAt: new Date(Date.now() - 86400000 * 6).toISOString(),
+    approvedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+    approvedBy: "laurent22100@gmail.com",
+  },
+  {
+    uid: "fake-benevole-2",
+    displayName: "Sophie Martin (Intendance & Pharmacie)",
+    email: "sophie.martin.rc@gmail.com",
+    role: "Benevole",
+    status: "approved",
+    createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+    approvedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    approvedBy: "laurent22100@gmail.com",
+  },
+  {
+    uid: "fake-joueur-1",
+    displayName: "Antoine Dupont (Demi de Mêlée - XV)",
+    email: "antoine.dupont9@gmail.com",
+    role: "Joueur",
+    status: "approved",
+    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+    approvedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    approvedBy: "laurent22100@gmail.com",
+  },
+  {
+    uid: "fake-joueur-2",
+    displayName: "Romain Ntamack (Demi d'Ouverture - XV)",
+    email: "romain.ntamack10@gmail.com",
+    role: "Joueur",
+    status: "approved",
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    approvedAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+    approvedBy: "laurent22100@gmail.com",
+  },
+  {
+    uid: "fake-pending-1",
+    displayName: "Julien Marchand (Nouveau Licencié)",
+    email: "julien.marchand.rc@gmail.com",
+    role: "Joueur",
+    status: "pending",
+    createdAt: new Date(Date.now() - 3600000 * 3).toISOString(),
+  },
+];
+
 export interface ChecklistItem {
   id: string;
   label: string;

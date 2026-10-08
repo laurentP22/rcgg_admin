@@ -13,6 +13,7 @@ import {
   subscribeToAllUsers,
   adminUpdateUser,
   adminDeleteUser,
+  seedSampleUsersToFirestore,
 } from "./services/firestoreService";
 import {
   EventItem,
@@ -23,6 +24,8 @@ import {
   UserProfile,
   UserRole,
   UserStatus,
+  BOOTSTRAP_ADMIN_EMAIL,
+  DEFAULT_SAMPLE_USERS,
 } from "./types";
 import { Sidebar } from "./components/Sidebar";
 import { DashboardView } from "./components/DashboardView";
@@ -43,6 +46,7 @@ export default function App() {
   const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [userManagementOpen, setUserManagementOpen] = useState(false);
   const [isFirestoreLive, setIsFirestoreLive] = useState(false);
+  const [isDemoUser, setIsDemoUser] = useState(false);
   const hasSeededFirestore = useRef(false);
 
   // Initialize state with localStorage or sample data
@@ -130,10 +134,15 @@ export default function App() {
     if (currentUserProfile?.role === "Admin" && currentUserProfile?.status === "approved") {
       const unsub = subscribeToAllUsers((users) => {
         setAllUsers(users);
+        // Automatically seed sample users if only the admin exists or collection is small
+        if (users.length <= 1 && !hasSeededFirestore.current && auth.currentUser) {
+          hasSeededFirestore.current = true;
+          seedSampleUsersToFirestore(currentUser?.email || BOOTSTRAP_ADMIN_EMAIL).catch(() => {});
+        }
       });
       return () => unsub();
     }
-  }, [currentUserProfile?.role, currentUserProfile?.status]);
+  }, [currentUserProfile?.role, currentUserProfile?.status, currentUser?.email]);
 
   // 2. Attach real-time subscriptions when user is authenticated
   useEffect(() => {
@@ -193,6 +202,7 @@ export default function App() {
     try {
       const user = await loginWithGoogle();
       if (user) {
+        setIsDemoUser(false);
         showToast(`Connecté en tant que ${user.displayName || user.email}`);
         const profile = await syncUserProfile(user);
         setCurrentUserProfile(profile);
@@ -205,14 +215,59 @@ export default function App() {
     }
   };
 
+  const handleLoginAsDemo = (profile: UserProfile) => {
+    setIsDemoUser(true);
+    const mockUser: any = {
+      uid: profile.uid,
+      email: profile.email,
+      displayName: profile.displayName,
+      photoURL: profile.photoURL || "",
+    };
+    setCurrentUser(mockUser);
+    setCurrentUserProfile(profile);
+    setUserManagementOpen(false);
+    showToast(`Connecté en tant que ${profile.displayName} (${profile.role})`);
+  };
+
+  const handleSimulateUser = (user: UserProfile) => {
+    handleLoginAsDemo(user);
+  };
+
+  const handleExitDemo = () => {
+    setIsDemoUser(false);
+    setCurrentUser(null);
+    setCurrentUserProfile(null);
+    showToast("Mode démo quitté");
+  };
+
   const handleLogoutGoogle = async () => {
     try {
-      await logoutUser();
+      if (!isDemoUser) {
+        await logoutUser();
+      }
+      setIsDemoUser(false);
+      setCurrentUser(null);
       setCurrentUserProfile(null);
       showToast("Déconnexion réussie");
     } catch (err) {
       showToast("Erreur lors de la déconnexion");
     }
+  };
+
+  const handleSeedSampleUsers = async () => {
+    const adminEmail = currentUser?.email || BOOTSTRAP_ADMIN_EMAIL;
+    await seedSampleUsersToFirestore(adminEmail);
+    setAllUsers((prev) => {
+      const existing = new Set(prev.map((u) => u.uid));
+      const next = [...prev];
+      for (const sample of DEFAULT_SAMPLE_USERS) {
+        if (!existing.has(sample.uid)) {
+          next.push(sample);
+        }
+      }
+      return next;
+    });
+    showToast("Membres démo (Bénévoles & Joueurs) ajoutés !");
   };
 
   const handleAdminUpdateUser = async (targetUid: string, role: UserRole, status: UserStatus) => {
@@ -261,7 +316,13 @@ export default function App() {
     };
   };
 
+  const isAdmin = currentUserProfile?.role === "Admin";
+
   const handleNewEvent = () => {
+    if (!isAdmin) {
+      showToast("L'ajout d'événements est réservé à l'administrateur");
+      return;
+    }
     const fresh = createNewEvent();
     setEvents((prev) => [fresh, ...prev]);
     setSelectedEventId(fresh.id);
@@ -273,6 +334,10 @@ export default function App() {
   };
 
   const handleNewEventWithType = (type: string, category: string, defaultName: string) => {
+    if (!isAdmin) {
+      showToast("L'ajout d'événements est réservé à l'administrateur");
+      return;
+    }
     const fresh = createNewEvent();
     fresh.type = type;
     fresh.cat = category;
@@ -287,6 +352,10 @@ export default function App() {
   };
 
   const handleNewEventForDate = (dateIso: string) => {
+    if (!isAdmin) {
+      showToast("L'ajout d'événements est réservé à l'administrateur");
+      return;
+    }
     const fresh = createNewEvent(dateIso);
     setEvents((prev) => [fresh, ...prev]);
     setSelectedEventId(fresh.id);
@@ -297,6 +366,10 @@ export default function App() {
   };
 
   const handleUpdateEvent = (updated: EventItem) => {
+    if (!isAdmin) {
+      showToast("La modification d'événements est réservée à l'administrateur");
+      return;
+    }
     setEvents((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
     if (currentUser) {
       saveEventToFirestore(updated).catch(() => {});
@@ -304,6 +377,10 @@ export default function App() {
   };
 
   const handleDeleteEvent = (id: string) => {
+    if (!isAdmin) {
+      showToast("La suppression d'événements est réservée à l'administrateur");
+      return;
+    }
     setEvents((prev) => prev.filter((e) => e.id !== id));
     if (selectedEventId === id) {
       setSelectedEventId(null);
@@ -315,6 +392,10 @@ export default function App() {
   };
 
   const handleDuplicateEvent = (target: EventItem) => {
+    if (!isAdmin) {
+      showToast("La duplication d'événements est réservée à l'administrateur");
+      return;
+    }
     const clone: EventItem = {
       ...target,
       id: uid(),
@@ -359,6 +440,7 @@ export default function App() {
       <LoginPage
         clubName={clubName}
         onLoginGoogle={handleLoginGoogle}
+        onLoginAsDemo={handleLoginAsDemo}
       />
     );
   }
@@ -411,8 +493,56 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F4F5F7] text-[#161B22] flex flex-col md:flex-row font-sans selection:bg-[#DE4B44] selection:text-white">
-      {/* Mobile Header Bar */}
+    <div className="min-h-screen bg-[#F4F5F7] text-[#161B22] flex flex-col font-sans selection:bg-[#DE4B44] selection:text-white">
+      {/* Demo Mode Interactive Banner */}
+      {isDemoUser && (
+        <div className="no-print bg-[#122A54] border-b border-amber-400/40 text-white px-4 py-2 text-xs font-semibold flex flex-wrap items-center justify-between gap-2 shadow-lg sticky top-0 z-50">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider shadow-xs">
+              Mode Test / Démo
+            </span>
+            <span className="text-slate-200">
+              Vue connectée en tant que :{" "}
+              <strong className="text-white underline decoration-amber-400 font-bold">
+                {currentUserProfile?.displayName}
+              </strong>
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                currentUserProfile?.role === "Benevole"
+                  ? "bg-amber-400 text-slate-900"
+                  : currentUserProfile?.role === "Joueur"
+                  ? "bg-sky-400 text-slate-900"
+                  : "bg-rose-500 text-white"
+              }`}
+            >
+              Rôle : {currentUserProfile?.role}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const targetRole = currentUserProfile?.role === "Benevole" ? "Joueur" : "Benevole";
+                const next = DEFAULT_SAMPLE_USERS.find((u) => u.role === targetRole) || DEFAULT_SAMPLE_USERS[0];
+                handleLoginAsDemo(next);
+              }}
+              className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-xs font-medium cursor-pointer transition-colors border border-white/20"
+            >
+              Basculer vers {currentUserProfile?.role === "Benevole" ? "Joueur (Antoine)" : "Bénévole (Marc)"}
+            </button>
+            <button
+              onClick={handleExitDemo}
+              className="px-2.5 py-1 rounded bg-[#C1272D] hover:bg-[#DE4B44] text-white text-xs font-bold cursor-pointer transition-colors shadow-xs"
+            >
+              Quitter le mode test
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 flex flex-col md:flex-row">
+        {/* Mobile Header Bar */}
       <div className="md:hidden no-print bg-[#122A54] text-white p-4 flex items-center justify-between sticky top-0 z-30 shadow-md">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded bg-[#C1272D] flex items-center justify-center font-heading text-lg font-bold text-white shadow-xs">
@@ -427,7 +557,7 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2">
-          {currentUserProfile?.role !== "Joueur" && (
+          {isAdmin && (
             <button
               onClick={handleNewEvent}
               className="p-1.5 bg-[#C1272D] text-white rounded text-xs font-semibold flex items-center gap-1 cursor-pointer"
@@ -492,12 +622,14 @@ export default function App() {
             onPrint={() => setPrintModalOpen(true)}
             onDuplicate={handleDuplicateEvent}
             onShowToast={showToast}
+            isAdmin={isAdmin}
           />
         ) : currentView === "calendar" ? (
           <CalendarView
             events={events}
             onSelectEvent={(id) => setSelectedEventId(id)}
             onNewEventForDate={handleNewEventForDate}
+            isAdmin={isAdmin}
           />
         ) : (
           <DashboardView
@@ -506,6 +638,7 @@ export default function App() {
             onSelectEvent={(id) => setSelectedEventId(id)}
             onNewEventWithType={handleNewEventWithType}
             onNewEvent={handleNewEvent}
+            isAdmin={isAdmin}
           />
         )}
       </main>
@@ -515,11 +648,13 @@ export default function App() {
         <UserManagementModal
           isOpen={userManagementOpen}
           onClose={() => setUserManagementOpen(false)}
-          users={allUsers}
+          users={allUsers.length > 0 ? allUsers : DEFAULT_SAMPLE_USERS}
           currentAdminUid={currentUser.uid}
           onUpdateUser={handleAdminUpdateUser}
           onDeleteUser={handleAdminDeleteUser}
           onShowToast={showToast}
+          onSeedSampleUsers={handleSeedSampleUsers}
+          onSimulateUser={handleSimulateUser}
         />
       )}
 
@@ -545,13 +680,14 @@ export default function App() {
         />
       )}
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-[#161B22] text-white px-4 py-2.5 rounded-lg shadow-xl text-xs font-semibold flex items-center gap-2 border border-white/10 animate-bounce duration-300">
-          <Shield className="w-3.5 h-3.5 text-[#DE4B44]" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="fixed bottom-5 right-5 z-50 bg-[#161B22] text-white px-4 py-2.5 rounded-lg shadow-xl text-xs font-semibold flex items-center gap-2 border border-white/10 animate-bounce duration-300">
+            <Shield className="w-3.5 h-3.5 text-[#DE4B44]" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -222,8 +222,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Main Action: New Event (Visible to Admins and Bénévoles) */}
-      {!isJoueur && (
+      {/* Main Action: New Event (Visible strictly to Admins) */}
+      {isAdmin && (
         <div className="p-4 pb-2">
           <button
             onClick={onNewEvent}

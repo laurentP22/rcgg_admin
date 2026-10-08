@@ -31,6 +31,7 @@ interface DashboardViewProps {
   onSelectEvent: (id: string) => void;
   onNewEventWithType: (type: string, category: string, defaultName: string) => void;
   onNewEvent: () => void;
+  isAdmin?: boolean;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -39,6 +40,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onSelectEvent,
   onNewEventWithType,
   onNewEvent,
+  isAdmin = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCatFilter, setSelectedCatFilter] = useState("all");
@@ -105,15 +107,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Planification des rencontres, gestion des équipements, coordination des bénévoles et suivi de communication.
               </p>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={onNewEvent}
-                className="bg-[#C1272D] hover:bg-[#DE4B44] text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer"
-              >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-                Ajouter un événement
-              </button>
-            </div>
+            {isAdmin && (
+              <div className="flex gap-2">
+                <button
+                  onClick={onNewEvent}
+                  className="bg-[#C1272D] hover:bg-[#DE4B44] text-white px-4 py-2.5 rounded-lg text-sm font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                  Ajouter un événement
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Stats Bar */}
@@ -296,83 +300,85 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
 
-      {/* Quick Creation Templates for Rugby Clubs */}
-      <div>
-        <h2 className="text-sm uppercase tracking-wider font-bold text-slate-500 mb-3 flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-[#C1272D]" />
-          Modèles d'événements rapides
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <button
-            onClick={() =>
-              onNewEventWithType(
-                "senior_dom",
-                "Seniors (Équipe 1 & 2)",
-                "Match Senior à Domicile vs "
-              )
-            }
-            className="flex items-start gap-3 p-3.5 bg-white border border-slate-200 hover:border-[#122A54] rounded-lg text-left shadow-sm hover:shadow transition-all group cursor-pointer"
-          >
-            <div className="w-9 h-9 rounded-md bg-[#122A54]/10 text-[#122A54] flex items-center justify-center shrink-0 group-hover:bg-[#122A54] group-hover:text-white transition-colors">
-              <Trophy className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="font-heading font-bold text-slate-900 text-sm">
-                Match Senior à Domicile
+      {/* Quick Creation Templates for Rugby Clubs - Admin only */}
+      {isAdmin && (
+        <div>
+          <h2 className="text-sm uppercase tracking-wider font-bold text-slate-500 mb-3 flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-[#C1272D]" />
+            Modèles d'événements rapides
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <button
+              onClick={() =>
+                onNewEventWithType(
+                  "senior_dom",
+                  "Seniors (Équipe 1 & 2)",
+                  "Match Senior à Domicile vs "
+                )
+              }
+              className="flex items-start gap-3 p-3.5 bg-white border border-slate-200 hover:border-[#122A54] rounded-lg text-left shadow-sm hover:shadow transition-all group cursor-pointer"
+            >
+              <div className="w-9 h-9 rounded-md bg-[#122A54]/10 text-[#122A54] flex items-center justify-center shrink-0 group-hover:bg-[#122A54] group-hover:text-white transition-colors">
+                <Trophy className="w-5 h-5" />
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">
-                Avec feuille de match FFR, buvette &amp; arbitres
+              <div>
+                <div className="font-heading font-bold text-slate-900 text-sm">
+                  Match Senior à Domicile
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  Avec feuille de match FFR, buvette &amp; arbitres
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
 
-          <button
-            onClick={() =>
-              onNewEventWithType(
-                "edr_dom",
-                "École de Rugby (M8-M14)",
-                "Plateau EDR à Domicile - "
-              )
-            }
-            className="flex items-start gap-3 p-3.5 bg-white border border-slate-200 hover:border-[#3E6FBE] rounded-lg text-left shadow-sm hover:shadow transition-all group cursor-pointer"
-          >
-            <div className="w-9 h-9 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <Baby className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="font-heading font-bold text-slate-900 text-sm">
-                Plateau EDR (Jeunes)
+            <button
+              onClick={() =>
+                onNewEventWithType(
+                  "edr_dom",
+                  "École de Rugby (M8-M14)",
+                  "Plateau EDR à Domicile - "
+                )
+              }
+              className="flex items-start gap-3 p-3.5 bg-white border border-slate-200 hover:border-[#3E6FBE] rounded-lg text-left shadow-sm hover:shadow transition-all group cursor-pointer"
+            >
+              <div className="w-9 h-9 rounded-md bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                <Baby className="w-5 h-5" />
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">
-                Plots, ballons adaptés, goûter &amp; vestiaires
+              <div>
+                <div className="font-heading font-bold text-slate-900 text-sm">
+                  Plateau EDR (Jeunes)
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  Plots, ballons adaptés, goûter &amp; vestiaires
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
 
-          <button
-            onClick={() =>
-              onNewEventWithType(
-                "asso_club",
-                "Club entier",
-                "Soirée Club House & Convivialité"
-              )
-            }
-            className="flex items-start gap-3 p-3.5 bg-white border border-slate-200 hover:border-sky-500 rounded-lg text-left shadow-sm hover:shadow transition-all group cursor-pointer"
-          >
-            <div className="w-9 h-9 rounded-md bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 group-hover:bg-sky-600 group-hover:text-white transition-colors">
-              <Beer className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="font-heading font-bold text-slate-900 text-sm">
-                Événement Club House
+            <button
+              onClick={() =>
+                onNewEventWithType(
+                  "asso_club",
+                  "Club entier",
+                  "Soirée Club House & Convivialité"
+                )
+              }
+              className="flex items-start gap-3 p-3.5 bg-white border border-slate-200 hover:border-sky-500 rounded-lg text-left shadow-sm hover:shadow transition-all group cursor-pointer"
+            >
+              <div className="w-9 h-9 rounded-md bg-sky-50 text-sky-700 flex items-center justify-center shrink-0 group-hover:bg-sky-600 group-hover:text-white transition-colors">
+                <Beer className="w-5 h-5" />
               </div>
-              <div className="text-xs text-slate-500 mt-0.5">
-                Repas des supporters, retransmission, AG
+              <div>
+                <div className="font-heading font-bold text-slate-900 text-sm">
+                  Événement Club House
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  Repas des supporters, retransmission, AG
+                </div>
               </div>
-            </div>
-          </button>
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Filter and Events Grid */}
       <div>

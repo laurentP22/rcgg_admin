@@ -37,6 +37,7 @@ interface EventDetailViewProps {
   onPrint: () => void;
   onDuplicate: (event: EventItem) => void;
   onShowToast: (msg: string) => void;
+  isAdmin?: boolean;
 }
 
 export const EventDetailView: React.FC<EventDetailViewProps> = ({
@@ -48,6 +49,7 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
   onPrint,
   onDuplicate,
   onShowToast,
+  isAdmin = false,
 }) => {
   // New item inputs
   const [newMaterielText, setNewMaterielText] = useState("");
@@ -69,11 +71,19 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
 
   // Updates
   const updateField = <K extends keyof EventItem>(key: K, value: EventItem[K]) => {
+    if (!isAdmin) {
+      onShowToast("Modification réservée aux administrateurs");
+      return;
+    }
     onUpdateEvent({ ...event, [key]: value });
   };
 
   // Checklists handlers
   const toggleChecklist = (section: "materiel" | "todo", itemId: string) => {
+    if (!isAdmin) {
+      onShowToast("Modification réservée aux administrateurs");
+      return;
+    }
     const updated = event[section].map((item) =>
       item.id === itemId ? { ...item, done: !item.done } : item
     );
@@ -81,11 +91,19 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
   };
 
   const removeChecklistItem = (section: "materiel" | "todo", itemId: string) => {
+    if (!isAdmin) {
+      onShowToast("Modification réservée aux administrateurs");
+      return;
+    }
     const updated = event[section].filter((item) => item.id !== itemId);
     onUpdateEvent({ ...event, [section]: updated });
   };
 
   const addChecklistItem = (section: "materiel" | "todo", text: string) => {
+    if (!isAdmin) {
+      onShowToast("Modification réservée aux administrateurs");
+      return;
+    }
     const trimmed = text.trim();
     if (!trimmed) return;
     const newItem = { id: uid(), label: trimmed, done: false };
@@ -96,6 +114,10 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
 
   // Preset rugby packs
   const addRugbyGearPreset = () => {
+    if (!isAdmin) {
+      onShowToast("Modification réservée aux administrateurs");
+      return;
+    }
     const preset = [
       "8 Ballons T5 gonflés (0.7 bar)",
       "Tee de pénalité & plot d'échauffement",
@@ -118,6 +140,10 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
   };
 
   const addRugbyTaskPreset = () => {
+    if (!isAdmin) {
+      onShowToast("Modification réservée aux administrateurs");
+      return;
+    }
     const preset = [
       "Déclaration feuille de match Oval-e (FFR)",
       "Vérification licences & pièces d'identité",
@@ -140,6 +166,10 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
 
   // Volunteer handlers
   const addVolunteer = () => {
+    if (!isAdmin) {
+      onShowToast("Modification réservée aux administrateurs");
+      return;
+    }
     if (!volunteerPoste.trim()) {
       onShowToast("Veuillez indiquer au moins le titre du poste");
       return;
@@ -159,6 +189,10 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
   };
 
   const removeVolunteer = (id: string) => {
+    if (!isAdmin) {
+      onShowToast("Modification réservée aux administrateurs");
+      return;
+    }
     const updated = event.benevoles.filter((b) => b.id !== id);
     onUpdateEvent({ ...event, benevoles: updated });
   };
@@ -189,6 +223,10 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
 
   // Com handlers
   const addCommunication = () => {
+    if (!isAdmin) {
+      onShowToast("Modification réservée aux administrateurs");
+      return;
+    }
     if (!comQuoi.trim()) {
       onShowToast("Veuillez préciser l'action de communication");
       return;
@@ -206,6 +244,10 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
   };
 
   const removeCommunication = (id: string) => {
+    if (!isAdmin) {
+      onShowToast("Modification réservée aux administrateurs");
+      return;
+    }
     const updated = event.com.filter((c) => c.id !== id);
     onUpdateEvent({ ...event, com: updated });
   };
@@ -222,7 +264,14 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
           Retour au tableau de bord
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {!isAdmin && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 shadow-xs">
+              <Shield className="w-3.5 h-3.5 text-amber-600" />
+              Mode consultation (Modifications réservées à l'administrateur)
+            </span>
+          )}
+
           <button
             onClick={onPrint}
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#122A54] bg-white border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer"
@@ -232,30 +281,34 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
             Imprimer la feuille
           </button>
 
-          <button
-            onClick={() => onDuplicate(event)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer"
-            title="Dupliquer cet événement"
-          >
-            <Copy className="w-3.5 h-3.5" />
-            Dupliquer
-          </button>
+          {isAdmin && (
+            <>
+              <button
+                onClick={() => onDuplicate(event)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 px-3 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer"
+                title="Dupliquer cet événement"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Dupliquer
+              </button>
 
-          <button
-            onClick={() => {
-              if (
-                window.confirm(
-                  `Supprimer définitivement l'événement "${event.nom}" ?`
-                )
-              ) {
-                onDeleteEvent(event.id);
-              }
-            }}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9B3B2D] bg-white border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            Supprimer
-          </button>
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Supprimer définitivement l'événement "${event.nom}" ?`
+                    )
+                  ) {
+                    onDeleteEvent(event.id);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9B3B2D] bg-white border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Supprimer
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -275,13 +328,19 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
             </span>
           </div>
 
-          <input
-            type="text"
-            value={event.nom}
-            onChange={(e) => updateField("nom", e.target.value)}
-            placeholder="Nom de la rencontre / événement"
-            className="w-full font-heading text-2xl sm:text-3xl font-bold text-slate-900 border-b border-transparent hover:border-slate-300 focus:border-[#122A54] outline-none pb-1 transition-colors"
-          />
+          {isAdmin ? (
+            <input
+              type="text"
+              value={event.nom}
+              onChange={(e) => updateField("nom", e.target.value)}
+              placeholder="Nom de la rencontre / événement"
+              className="w-full font-heading text-2xl sm:text-3xl font-bold text-slate-900 border-b border-transparent hover:border-slate-300 focus:border-[#122A54] outline-none pb-1 transition-colors"
+            />
+          ) : (
+            <h1 className="w-full font-heading text-2xl sm:text-3xl font-bold text-slate-900 pb-1">
+              {event.nom || "Sans titre"}
+            </h1>
+          )}
         </div>
 
         {/* Form Grid */}
@@ -292,9 +351,10 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
               Type d'événement
             </label>
             <select
+              disabled={!isAdmin}
               value={event.type}
               onChange={(e) => updateField("type", e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded p-2 text-slate-800 font-medium focus:outline-none focus:border-[#122A54]"
+              className="w-full bg-white disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed border border-slate-200 rounded p-2 text-slate-800 font-medium focus:outline-none focus:border-[#122A54]"
             >
               {TYPES.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -310,9 +370,10 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
               Catégorie FFR
             </label>
             <select
+              disabled={!isAdmin}
               value={event.cat}
               onChange={(e) => updateField("cat", e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded p-2 text-slate-800 font-medium focus:outline-none focus:border-[#122A54]"
+              className="w-full bg-white disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed border border-slate-200 rounded p-2 text-slate-800 font-medium focus:outline-none focus:border-[#122A54]"
             >
               {CATS.map((c) => (
                 <option key={c} value={c}>
@@ -329,9 +390,10 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
             </label>
             <input
               type="date"
+              disabled={!isAdmin}
               value={event.date}
               onChange={(e) => updateField("date", e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded p-2 text-slate-800 font-medium focus:outline-none focus:border-[#122A54]"
+              className="w-full bg-white disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed border border-slate-200 rounded p-2 text-slate-800 font-medium focus:outline-none focus:border-[#122A54]"
             />
           </div>
 
@@ -342,10 +404,11 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
             </label>
             <input
               type="text"
+              disabled={!isAdmin}
               placeholder="ex: 13h30 (Réserve) / 15h15 (Première)"
               value={event.horaire || ""}
               onChange={(e) => updateField("horaire", e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded p-2 text-slate-800 focus:outline-none focus:border-[#122A54]"
+              className="w-full bg-white disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed border border-slate-200 rounded p-2 text-slate-800 focus:outline-none focus:border-[#122A54]"
             />
           </div>
 
@@ -356,10 +419,11 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
             </label>
             <input
               type="text"
+              disabled={!isAdmin}
               placeholder="ex: Stade Municipal, Terrain Honneur"
               value={event.lieu}
               onChange={(e) => updateField("lieu", e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded p-2 text-slate-800 focus:outline-none focus:border-[#122A54]"
+              className="w-full bg-white disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed border border-slate-200 rounded p-2 text-slate-800 focus:outline-none focus:border-[#122A54]"
             />
           </div>
 
@@ -370,10 +434,11 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
             </label>
             <input
               type="text"
+              disabled={!isAdmin}
               placeholder="ex: Stade Bordelais ou 4 clubs invités"
               value={event.adversaire || ""}
               onChange={(e) => updateField("adversaire", e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded p-2 text-slate-800 focus:outline-none focus:border-[#122A54]"
+              className="w-full bg-white disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed border border-slate-200 rounded p-2 text-slate-800 focus:outline-none focus:border-[#122A54]"
             />
           </div>
 
@@ -384,10 +449,11 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
             </label>
             <textarea
               rows={2}
+              disabled={!isAdmin}
               placeholder="Notes logistiques, code vestiaire, protocole partenaires, particularités règlementaires..."
               value={event.notes || ""}
               onChange={(e) => updateField("notes", e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded p-2 text-slate-800 focus:outline-none focus:border-[#122A54]"
+              className="w-full bg-white disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed border border-slate-200 rounded p-2 text-slate-800 focus:outline-none focus:border-[#122A54]"
             />
           </div>
         </div>
@@ -423,13 +489,15 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
               </span>
             </div>
 
-            <button
-              onClick={addRugbyGearPreset}
-              className="text-xs font-semibold text-[#122A54] hover:text-[#C1272D] flex items-center gap-1 transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              Insérer pack matériel rugby
-            </button>
+            {isAdmin && (
+              <button
+                onClick={addRugbyGearPreset}
+                className="text-xs font-semibold text-[#122A54] hover:text-[#C1272D] flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                Insérer pack matériel rugby
+              </button>
+            )}
           </div>
 
           <p className="text-xs text-slate-500 italic">
@@ -446,12 +514,13 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
                     : "bg-white border-slate-200 text-slate-800 hover:border-slate-300 shadow-xs"
                 }`}
               >
-                <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+                <label className={`flex items-center gap-3 flex-1 min-w-0 ${isAdmin ? "cursor-pointer" : "cursor-default"}`}>
                   <input
                     type="checkbox"
+                    disabled={!isAdmin}
                     checked={item.done}
                     onChange={() => toggleChecklist("materiel", item.id)}
-                    className="w-4 h-4 accent-[#122A54] rounded cursor-pointer shrink-0"
+                    className="w-4 h-4 accent-[#122A54] rounded disabled:cursor-not-allowed shrink-0"
                   />
                   <span
                     className={`text-sm ${
@@ -462,38 +531,42 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
                   </span>
                 </label>
 
-                <button
-                  onClick={() => removeChecklistItem("materiel", item.id)}
-                  className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors"
-                  title="Supprimer cet élément"
-                >
-                  &times;
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => removeChecklistItem("materiel", item.id)}
+                    className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors cursor-pointer"
+                    title="Supprimer cet élément"
+                  >
+                    &times;
+                  </button>
+                )}
               </div>
             ))}
           </div>
 
-          {/* Add item input */}
-          <div className="flex gap-2 pt-1">
-            <input
-              type="text"
-              placeholder="Ajouter un équipement (ex. 10 plots de pénalité, glace fraîche...)"
-              value={newMaterielText}
-              onChange={(e) => setNewMaterielText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  addChecklistItem("materiel", newMaterielText);
-                }
-              }}
-              className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#122A54]"
-            />
-            <button
-              onClick={() => addChecklistItem("materiel", newMaterielText)}
-              className="bg-[#122A54] hover:bg-[#1B3B73] text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-xs cursor-pointer"
-            >
-              Ajouter
-            </button>
-          </div>
+          {/* Add item input - Admin only */}
+          {isAdmin && (
+            <div className="flex gap-2 pt-1">
+              <input
+                type="text"
+                placeholder="Ajouter un équipement (ex. 10 plots de pénalité, glace fraîche...)"
+                value={newMaterielText}
+                onChange={(e) => setNewMaterielText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    addChecklistItem("materiel", newMaterielText);
+                  }
+                }}
+                className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#122A54]"
+              />
+              <button
+                onClick={() => addChecklistItem("materiel", newMaterielText)}
+                className="bg-[#122A54] hover:bg-[#1B3B73] text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-xs cursor-pointer"
+              >
+                Ajouter
+              </button>
+            </div>
+          )}
         </div>
 
         {/* SECTION: Tâches à faire */}
@@ -508,13 +581,15 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
               </span>
             </div>
 
-            <button
-              onClick={addRugbyTaskPreset}
-              className="text-xs font-semibold text-[#122A54] hover:text-[#C1272D] flex items-center gap-1 transition-colors"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              Insérer pack logistique FFR
-            </button>
+            {isAdmin && (
+              <button
+                onClick={addRugbyTaskPreset}
+                className="text-xs font-semibold text-[#122A54] hover:text-[#C1272D] flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                Insérer pack logistique FFR
+              </button>
+            )}
           </div>
 
           <p className="text-xs text-slate-500 italic">
@@ -531,12 +606,13 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
                     : "bg-white border-slate-200 text-slate-800 hover:border-slate-300 shadow-xs"
                 }`}
               >
-                <label className="flex items-center gap-3 cursor-pointer flex-1 min-w-0">
+                <label className={`flex items-center gap-3 flex-1 min-w-0 ${isAdmin ? "cursor-pointer" : "cursor-default"}`}>
                   <input
                     type="checkbox"
+                    disabled={!isAdmin}
                     checked={item.done}
                     onChange={() => toggleChecklist("todo", item.id)}
-                    className="w-4 h-4 accent-[#122A54] rounded cursor-pointer shrink-0"
+                    className="w-4 h-4 accent-[#122A54] rounded disabled:cursor-not-allowed shrink-0"
                   />
                   <span
                     className={`text-sm ${
@@ -547,38 +623,42 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
                   </span>
                 </label>
 
-                <button
-                  onClick={() => removeChecklistItem("todo", item.id)}
-                  className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors"
-                  title="Supprimer cette tâche"
-                >
-                  &times;
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => removeChecklistItem("todo", item.id)}
+                    className="text-slate-400 hover:text-red-600 p-1 rounded transition-colors cursor-pointer"
+                    title="Supprimer cette tâche"
+                  >
+                    &times;
+                  </button>
+                )}
               </div>
             ))}
           </div>
 
-          {/* Add task input */}
-          <div className="flex gap-2 pt-1">
-            <input
-              type="text"
-              placeholder="Ajouter une tâche (ex. Déclaration buvette en mairie, test sono...)"
-              value={newTodoText}
-              onChange={(e) => setNewTodoText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  addChecklistItem("todo", newTodoText);
-                }
-              }}
-              className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#122A54]"
-            />
-            <button
-              onClick={() => addChecklistItem("todo", newTodoText)}
-              className="bg-[#122A54] hover:bg-[#1B3B73] text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-xs cursor-pointer"
-            >
-              Ajouter
-            </button>
-          </div>
+          {/* Add task input - Admin only */}
+          {isAdmin && (
+            <div className="flex gap-2 pt-1">
+              <input
+                type="text"
+                placeholder="Ajouter une tâche (ex. Déclaration buvette en mairie, test sono...)"
+                value={newTodoText}
+                onChange={(e) => setNewTodoText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    addChecklistItem("todo", newTodoText);
+                  }
+                }}
+                className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#122A54]"
+              />
+              <button
+                onClick={() => addChecklistItem("todo", newTodoText)}
+                className="bg-[#122A54] hover:bg-[#1B3B73] text-white px-4 py-2 rounded-lg text-xs font-semibold shadow-xs cursor-pointer"
+              >
+                Ajouter
+              </button>
+            </div>
+          )}
         </div>
 
         {/* SECTION: Bénévoles */}
@@ -623,13 +703,15 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
                         {b.creneau}
                       </div>
                     </div>
-                    <button
-                      onClick={() => removeVolunteer(b.id)}
-                      className="text-slate-400 hover:text-red-600 p-1"
-                      title="Supprimer ce poste"
-                    >
-                      &times;
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => removeVolunteer(b.id)}
+                        className="text-slate-400 hover:text-red-600 p-1 cursor-pointer"
+                        title="Supprimer ce poste"
+                      >
+                        &times;
+                      </button>
+                    )}
                   </div>
 
                   {b.nombre && (
@@ -660,49 +742,51 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
             ))}
           </div>
 
-          {/* Add Volunteer Form */}
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Ajouter un créneau bénévole
+          {/* Add Volunteer Form - Admin only */}
+          {isAdmin && (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Ajouter un créneau bénévole
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                <input
+                  type="text"
+                  placeholder="Poste (ex. Buvette, Billetterie...)"
+                  value={volunteerPoste}
+                  onChange={(e) => setVolunteerPoste(e.target.value)}
+                  className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
+                />
+                <input
+                  type="text"
+                  placeholder="Créneau (ex. 13h30 - 17h00)"
+                  value={volunteerCreneau}
+                  onChange={(e) => setVolunteerCreneau(e.target.value)}
+                  className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
+                />
+                <input
+                  type="number"
+                  min="1"
+                  placeholder="Nombre requis"
+                  value={volunteerNombre}
+                  onChange={(e) => setVolunteerNombre(e.target.value)}
+                  className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
+                />
+                <input
+                  type="text"
+                  placeholder="Lien WhatsApp ou Google Forms"
+                  value={volunteerLien}
+                  onChange={(e) => setVolunteerLien(e.target.value)}
+                  className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
+                />
+              </div>
+              <button
+                onClick={addVolunteer}
+                className="bg-[#122A54] hover:bg-[#1B3B73] text-white px-4 py-2 rounded text-xs font-semibold shadow-xs cursor-pointer"
+              >
+                Ajouter le poste
+              </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-              <input
-                type="text"
-                placeholder="Poste (ex. Buvette, Billetterie...)"
-                value={volunteerPoste}
-                onChange={(e) => setVolunteerPoste(e.target.value)}
-                className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
-              />
-              <input
-                type="text"
-                placeholder="Créneau (ex. 13h30 - 17h00)"
-                value={volunteerCreneau}
-                onChange={(e) => setVolunteerCreneau(e.target.value)}
-                className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
-              />
-              <input
-                type="number"
-                min="1"
-                placeholder="Nombre requis"
-                value={volunteerNombre}
-                onChange={(e) => setVolunteerNombre(e.target.value)}
-                className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
-              />
-              <input
-                type="text"
-                placeholder="Lien WhatsApp ou Google Forms"
-                value={volunteerLien}
-                onChange={(e) => setVolunteerLien(e.target.value)}
-                className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
-              />
-            </div>
-            <button
-              onClick={addVolunteer}
-              className="bg-[#122A54] hover:bg-[#1B3B73] text-white px-4 py-2 rounded text-xs font-semibold shadow-xs cursor-pointer"
-            >
-              Ajouter le poste
-            </button>
-          </div>
+          )}
         </div>
 
         {/* SECTION: Communication */}
@@ -748,51 +832,55 @@ export const EventDetailView: React.FC<EventDetailViewProps> = ({
                   )}
                 </div>
 
-                <button
-                  onClick={() => removeCommunication(c.id)}
-                  className="text-slate-400 hover:text-red-600 p-1"
-                  title="Supprimer cette action"
-                >
-                  &times;
-                </button>
+                {isAdmin && (
+                  <button
+                    onClick={() => removeCommunication(c.id)}
+                    className="text-slate-400 hover:text-red-600 p-1 cursor-pointer"
+                    title="Supprimer cette action"
+                  >
+                    &times;
+                  </button>
+                )}
               </div>
             ))}
           </div>
 
-          {/* Add Com Form */}
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Ajouter une action de communication
+          {/* Add Com Form - Admin only */}
+          {isAdmin && (
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 space-y-3">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Ajouter une action de communication
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <input
+                  type="date"
+                  value={comDate}
+                  onChange={(e) => setComDate(e.target.value)}
+                  className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
+                />
+                <input
+                  type="text"
+                  placeholder="Lien (Canva, Google Drive, page Facebook...)"
+                  value={comLien}
+                  onChange={(e) => setComLien(e.target.value)}
+                  className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
+                />
+                <input
+                  type="text"
+                  placeholder="Description (ex. Visuel composition d'équipe sur Instagram jeudi à 20h)"
+                  value={comQuoi}
+                  onChange={(e) => setComQuoi(e.target.value)}
+                  className="sm:col-span-2 bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
+                />
+              </div>
+              <button
+                onClick={addCommunication}
+                className="bg-[#122A54] hover:bg-[#1B3B73] text-white px-4 py-2 rounded text-xs font-semibold shadow-xs cursor-pointer"
+              >
+                Ajouter l'action com
+              </button>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <input
-                type="date"
-                value={comDate}
-                onChange={(e) => setComDate(e.target.value)}
-                className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
-              />
-              <input
-                type="text"
-                placeholder="Lien (Canva, Google Drive, page Facebook...)"
-                value={comLien}
-                onChange={(e) => setComLien(e.target.value)}
-                className="bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
-              />
-              <input
-                type="text"
-                placeholder="Description (ex. Visuel composition d'équipe sur Instagram jeudi à 20h)"
-                value={comQuoi}
-                onChange={(e) => setComQuoi(e.target.value)}
-                className="sm:col-span-2 bg-white border border-slate-300 rounded p-2 text-xs focus:outline-none focus:border-[#122A54]"
-              />
-            </div>
-            <button
-              onClick={addCommunication}
-              className="bg-[#122A54] hover:bg-[#1B3B73] text-white px-4 py-2 rounded text-xs font-semibold shadow-xs cursor-pointer"
-            >
-              Ajouter l'action com
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </div>
